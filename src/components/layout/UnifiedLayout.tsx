@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useMemo } from "react";
+import { useCallback, useEffect, useMemo, useRef } from "react";
 import { useNavigate } from "react-router-dom";
 import { useIsMobile } from "@/hooks/use-mobile";
 import { DesktopLayout } from "./DesktopLayout";
@@ -67,6 +67,9 @@ export function UnifiedLayout({
   const removeTab = useUIStore((state) => state.removeTab);
   const updateTab = useUIStore((state) => state.updateTab);
 
+  // Track if we're programmatically changing selection to prevent loops
+  const isInternalChange = useRef(false);
+
   // Build node path helper
   const getNodePath = useCallback((nodeId: string): string => {
     const node = nodes.find(n => n.id === nodeId);
@@ -100,12 +103,19 @@ export function UnifiedLayout({
     });
   }, [nodes, tabs, updateTab]);
 
-  // Open a node in editor when selected
+  // Open a node in editor when selected (only if not from tab selection)
   useEffect(() => {
+    if (isInternalChange.current) {
+      isInternalChange.current = false;
+      return;
+    }
+    
     if (selectedNode && selectedNode.type !== "folder") {
       const existingTab = tabs.find((t) => t.nodeId === selectedNode.id);
       if (existingTab) {
-        setActiveTabId(existingTab.id);
+        if (activeTabId !== existingTab.id) {
+          setActiveTabId(existingTab.id);
+        }
       } else {
         addTab({
           id: `editor-${selectedNode.id}`,
@@ -115,18 +125,21 @@ export function UnifiedLayout({
         });
       }
     }
-  }, [selectedNode?.id, tabs, setActiveTabId, addTab]);
+  }, [selectedNode?.id]);
 
-  // When active tab changes, update selectedNode to match
-  useEffect(() => {
-    const activeTab = tabs.find(t => t.id === activeTabId);
-    if (activeTab?.type === "editor" && activeTab.nodeId) {
-      const node = nodes.find(n => n.id === activeTab.nodeId);
+  // When user clicks a different tab, update selectedNode to match
+  const handleTabSelectInternal = useCallback((tabId: string) => {
+    setActiveTabId(tabId);
+    
+    const tab = tabs.find(t => t.id === tabId);
+    if (tab?.type === "editor" && tab.nodeId) {
+      const node = nodes.find(n => n.id === tab.nodeId);
       if (node && (!selectedNode || selectedNode.id !== node.id)) {
+        isInternalChange.current = true;
         onNodeSelect(node);
       }
     }
-  }, [activeTabId, tabs, nodes, selectedNode, onNodeSelect]);
+  }, [tabs, nodes, selectedNode, onNodeSelect, setActiveTabId]);
 
   // Get editor content for the current active tab
   const currentEditorContent = useMemo(() => {
@@ -176,9 +189,7 @@ export function UnifiedLayout({
     setActiveTool(null);
   }, [setActiveTool]);
 
-  const handleTabSelect = useCallback((tabId: string) => {
-    setActiveTabId(tabId);
-  }, [setActiveTabId]);
+  // handleTabSelect is now handled by handleTabSelectInternal above
 
   const handleTabClose = useCallback((tabId: string) => {
     removeTab(tabId);
@@ -234,7 +245,7 @@ export function UnifiedLayout({
     onToolSelect: handleToolSelect,
     tabs,
     activeTabId,
-    onTabSelect: handleTabSelect,
+    onTabSelect: handleTabSelectInternal,
     onTabClose: handleTabClose,
     onTabReorder: setTabs,
     onNewTab: handleNewTab,
