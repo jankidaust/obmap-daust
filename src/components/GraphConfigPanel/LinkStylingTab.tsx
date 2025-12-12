@@ -22,7 +22,7 @@ import {
   GitBranch,
   Tags,
 } from 'lucide-react';
-import { LinkConfig, TopologyConfig, LinkStyle } from '@/hooks/useGraphConfig';
+import { LinkConfig, TopologyConfig, LinkStyle } from '@/stores/useGraphStore';
 import { ColorPicker } from './ColorPicker';
 import { CollapsibleSection } from './CollapsibleSection';
 

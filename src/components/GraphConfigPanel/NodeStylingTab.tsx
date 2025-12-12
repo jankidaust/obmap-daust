@@ -25,7 +25,7 @@ import {
   Triangle,
   Hexagon,
 } from 'lucide-react';
-import { NodeConfig } from '@/hooks/useGraphConfig';
+import { NodeConfig } from '@/stores/useGraphStore';
 import { ColorPicker } from './ColorPicker';
 import { CollapsibleSection } from './CollapsibleSection';
 

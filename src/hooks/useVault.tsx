@@ -13,7 +13,7 @@ import { useState, useRef, useCallback } from 'react';
 import { toast } from 'sonner';
 import { FileSystemService } from '@/services/persistence/FileSystemService';
 import { GraphService } from '@/services/graph/GraphService';
-import type { GraphConfigState } from '@/hooks/useGraphConfig';
+import type { GraphConfigState } from '@/stores/useGraphStore';
 
 interface Node {
   id: string;

@@ -12,7 +12,7 @@ import {
   ArrowDownToLine,
   ArrowUpFromLine,
 } from 'lucide-react';
-import { LinkStats } from '@/hooks/useGraphConfig';
+import { LinkStats } from '@/stores/useGraphStore';
 import { CollapsibleSection } from './CollapsibleSection';
 
 interface AnalyticsTabProps {
