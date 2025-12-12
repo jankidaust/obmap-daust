@@ -7,11 +7,12 @@ import { ErrorBoundary } from "./components/core/common/ErrorBoundary";
 import { AuthProvider } from "./components/auth/hooks/useAuth";
 import { ProtectedRoute } from "./components/core/common/ProtectedRoute";
 import { EventDebugPanel } from "./components/core/debug/EventDebugPanel";
-import { Suspense, lazy } from "react";
+import { Suspense, lazy, useEffect, useState } from "react";
+import { initializeFeatureLoader, getFeatureLoaderState } from "./services/core/feature-loader";
 
 const queryClient = new QueryClient();
 
-// Lazy load pages to catch import errors
+// Lazy load pages with error handling
 const Landing = lazy(() => import("./pages/Landing").catch(err => {
   console.error("Failed to load Landing:", err);
   return { default: () => <div className="p-8 text-destructive">Failed to load Landing: {err.message}</div> };
@@ -56,6 +57,51 @@ const LoadingFallback = () => (
   </div>
 );
 
+/**
+ * Feature Initializer Component
+ * Initializes the feature loader on mount
+ */
+function FeatureInitializer({ children }: { children: React.ReactNode }) {
+  const [isInitialized, setIsInitialized] = useState(false);
+  const [error, setError] = useState<Error | null>(null);
+
+  useEffect(() => {
+    let mounted = true;
+
+    async function init() {
+      try {
+        await initializeFeatureLoader();
+        if (mounted) {
+          setIsInitialized(true);
+        }
+      } catch (err) {
+        console.error('[App] Feature initialization failed:', err);
+        if (mounted) {
+          setError(err instanceof Error ? err : new Error(String(err)));
+          // Still show app even if features fail to initialize
+          setIsInitialized(true);
+        }
+      }
+    }
+
+    init();
+
+    return () => {
+      mounted = false;
+    };
+  }, []);
+
+  if (!isInitialized) {
+    return <LoadingFallback />;
+  }
+
+  if (error) {
+    console.warn('[App] Features initialized with error:', error.message);
+  }
+
+  return <>{children}</>;
+}
+
 const App = () => (
   <ErrorBoundary>
     <QueryClientProvider client={queryClient}>
@@ -65,22 +111,24 @@ const App = () => (
         <EventDebugPanel />
         <BrowserRouter>
           <AuthProvider>
-            <Suspense fallback={<LoadingFallback />}>
-            <Routes>
-                {/* Public landing page */}
-                <Route path="/" element={<Landing />} />
-                <Route path="/auth" element={<Auth />} />
-                <Route path="/install" element={<Install />} />
-                
-                {/* Protected routes */}
-                <Route path="/app" element={<ProtectedRoute><Index /></ProtectedRoute>} />
-                <Route path="/profile" element={<ProtectedRoute><Profile /></ProtectedRoute>} />
-                <Route path="/vaults" element={<ProtectedRoute><VaultDashboard /></ProtectedRoute>} />
-                
-                {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
-                <Route path="*" element={<NotFound />} />
-              </Routes>
-            </Suspense>
+            <FeatureInitializer>
+              <Suspense fallback={<LoadingFallback />}>
+                <Routes>
+                  {/* Public landing page */}
+                  <Route path="/" element={<Landing />} />
+                  <Route path="/auth" element={<Auth />} />
+                  <Route path="/install" element={<Install />} />
+                  
+                  {/* Protected routes */}
+                  <Route path="/app" element={<ProtectedRoute><Index /></ProtectedRoute>} />
+                  <Route path="/profile" element={<ProtectedRoute><Profile /></ProtectedRoute>} />
+                  <Route path="/vaults" element={<ProtectedRoute><VaultDashboard /></ProtectedRoute>} />
+                  
+                  {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
+                  <Route path="*" element={<NotFound />} />
+                </Routes>
+              </Suspense>
+            </FeatureInitializer>
           </AuthProvider>
         </BrowserRouter>
       </TooltipProvider>
