@@ -4,7 +4,7 @@ import { IconRibbon, RibbonTool } from './IconRibbon';
 import { SidebarPanel } from './SidebarPanel';
 import { WorkspaceTabs, WorkspaceTab, PaneType } from './WorkspaceTabs';
 import { WorkspacePane } from './WorkspacePane';
-import { Button } from "@/components/core/ui/button';
+import { Button } from "@/components/core/ui/button";
 import { Menu, X } from 'lucide-react';
 
 interface Node {

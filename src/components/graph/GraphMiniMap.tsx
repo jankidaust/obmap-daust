@@ -4,7 +4,7 @@
  */
 
 import { useRef, useEffect, useState, useCallback } from 'react';
-import { Button } from "@/components/core/ui/button';
+import { Button } from "@/components/core/ui/button";
 import { Map, Maximize2, Minimize2, X } from 'lucide-react';
 import { cn } from "@/services/core/utils";
 

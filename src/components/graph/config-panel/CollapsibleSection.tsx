@@ -9,7 +9,7 @@ import {
   Collapsible,
   CollapsibleContent,
   CollapsibleTrigger,
-} from "@/components/core/ui/collapsible';
+} from "@/components/core/ui/collapsible";
 
 interface CollapsibleSectionProps {
   icon: ReactNode;

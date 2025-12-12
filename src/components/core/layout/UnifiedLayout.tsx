@@ -5,7 +5,7 @@ import { DesktopLayout } from "./DesktopLayout";
 import { MobileLayout } from "./MobileLayout";
 import { RibbonTool } from "./IconRibbon";
 import { PaneType } from "./WorkspaceTabs";
-import { useUIStore } from "@/services/ui/stores"";
+import { useUIStore } from "@/services/ui/stores";
 
 interface Node {
   id: string;

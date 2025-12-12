@@ -12,11 +12,11 @@ import {
   SheetHeader,
   SheetTitle,
   SheetTrigger,
-} from "@/components/core/ui/sheet';
-import { Button } from "@/components/core/ui/button';
-import { Badge } from "@/components/core/ui/badge';
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/core/ui/tabs';
-import { ScrollArea } from "@/components/core/ui/scroll-area';
+} from "@/components/core/ui/sheet";
+import { Button } from "@/components/core/ui/button";
+import { Badge } from "@/components/core/ui/badge";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/core/ui/tabs";
+import { ScrollArea } from "@/components/core/ui/scroll-area";
 import {
   Settings2,
   Circle,
