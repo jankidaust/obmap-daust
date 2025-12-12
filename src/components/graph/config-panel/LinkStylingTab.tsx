@@ -2,18 +2,18 @@
  * LinkStylingTab - Combined link/edge configuration with topology settings
  */
 
-import { Label } from "@/components/core/ui/label';
-import { Slider } from "@/components/core/ui/slider';
-import { Switch } from "@/components/core/ui/switch';
-import { Badge } from "@/components/core/ui/badge';
-import { Input } from "@/components/core/ui/input';
+import { Label } from "@/components/core/ui/label";
+import { Slider } from "@/components/core/ui/slider";
+import { Switch } from "@/components/core/ui/switch";
+import { Badge } from "@/components/core/ui/badge";
+import { Input } from "@/components/core/ui/input";
 import {
   Select,
   SelectContent,
   SelectItem,
   SelectTrigger,
   SelectValue,
-} from "@/components/core/ui/select';
+} from "@/components/core/ui/select";
 import {
   Link2,
   MoveRight,

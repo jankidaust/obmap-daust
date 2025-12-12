@@ -22,7 +22,7 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
   AlertDialogTrigger,
-} from "@/components/core/ui/alert-dialog';
+} from "@/components/core/ui/alert-dialog";
 import { Loader2, Save, Trash2, Lock } from 'lucide-react';
 import { toast } from 'sonner';
 

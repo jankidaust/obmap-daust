@@ -10,7 +10,7 @@
 import { supabase } from "@/services/integrations/supabase/client";
 import { cloudVaultService, CloudVault } from './CloudVaultService';
 import { VaultManager, Vault } from './VaultManager';
-import type { Json } from "@/services/integrations"/supabase/types';
+import type { Json } from "@/services/integrations/supabase/types";
 
 export type SyncStatus = 'idle' | 'syncing' | 'synced' | 'error' | 'offline';
 

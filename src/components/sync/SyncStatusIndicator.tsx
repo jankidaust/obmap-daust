@@ -3,13 +3,13 @@ import { Cloud, CloudOff, CheckCircle, RefreshCw, User } from 'lucide-react';
 import { eventBus, EventType } from "@/services/core/events";
 import { backgroundSyncService } from '@/services/sync/BackgroundSyncService';
 import { useVaultSync } from "@/components/vault/hooks/useVaultSync";
-import { Button } from "@/components/core/ui/button';
+import { Button } from "@/components/core/ui/button";
 import {
   Tooltip,
   TooltipContent,
   TooltipProvider,
   TooltipTrigger,
-} from "@/components/core/ui/tooltip';
+} from "@/components/core/ui/tooltip";
 
 export function SyncStatusIndicator() {
   const [isOnline, setIsOnline] = useState(navigator.onLine);

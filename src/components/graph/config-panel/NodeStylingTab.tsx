@@ -2,17 +2,17 @@
  * NodeStylingTab - Node visual configuration with collapsible sections
  */
 
-import { Label } from "@/components/core/ui/label';
-import { Slider } from "@/components/core/ui/slider';
-import { Switch } from "@/components/core/ui/switch';
-import { Badge } from "@/components/core/ui/badge';
+import { Label } from "@/components/core/ui/label";
+import { Slider } from "@/components/core/ui/slider";
+import { Switch } from "@/components/core/ui/switch";
+import { Badge } from "@/components/core/ui/badge";
 import {
   Select,
   SelectContent,
   SelectItem,
   SelectTrigger,
   SelectValue,
-} from "@/components/core/ui/select';
+} from "@/components/core/ui/select";
 import {
   Circle,
   Eye,

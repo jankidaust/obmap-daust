@@ -1,8 +1,8 @@
 import { useState, useEffect } from 'react';
 import { usePWA } from "@/components/sync/hooks/usePWA";
-import { Button } from "@/components/core/ui/button';
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/core/ui/card';
-import { Badge } from "@/components/core/ui/badge';
+import { Button } from "@/components/core/ui/button";
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/core/ui/card";
+import { Badge } from "@/components/core/ui/badge";
 import { 
   Download, 
   X, 

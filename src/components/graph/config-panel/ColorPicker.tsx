@@ -3,16 +3,16 @@
  */
 
 import { useState, useEffect } from 'react';
-import { Label } from "@/components/core/ui/label';
-import { Input } from "@/components/core/ui/input';
-import { Button } from "@/components/core/ui/button';
+import { Label } from "@/components/core/ui/label";
+import { Input } from "@/components/core/ui/input";
+import { Button } from "@/components/core/ui/button";
 import {
   Popover,
   PopoverContent,
   PopoverTrigger,
-} from "@/components/core/ui/popover';
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/core/ui/tabs';
-import { Slider } from "@/components/core/ui/slider';
+} from "@/components/core/ui/popover";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/core/ui/tabs";
+import { Slider } from "@/components/core/ui/slider";
 import { cn } from "@/services/core/utils";
 
 interface ColorPickerProps {

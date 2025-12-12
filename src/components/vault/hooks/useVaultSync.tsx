@@ -3,7 +3,7 @@
  */
 
 import { useState, useEffect, useCallback } from 'react';
-import { useAuth } from './useAuth';
+import { useAuth } from '@/components/auth/hooks/useAuth';
 import { vaultSyncService, SyncStatus } from '@/services/vault/VaultSyncService';
 import { getVaultManager } from '@/services/vault/VaultManagerSingleton';
 import { toast } from 'sonner';

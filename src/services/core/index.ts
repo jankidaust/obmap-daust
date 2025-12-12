@@ -7,7 +7,22 @@
  * - Feature Registry: Convenience functions
  */
 
-export * from './plugin-registry';
+// Re-export plugin-registry (excluding ServiceFactory to avoid conflict)
+export {
+  type ComponentFactory,
+  type HookFactory,
+  type RouteConfig,
+  type ComponentRegistry,
+  type HookRegistry,
+  type Feature,
+  type FeatureStatus,
+  PluginRegistry,
+  pluginRegistry,
+} from './plugin-registry';
+
+// Re-export container
 export * from './container';
+
+// Re-export features
 export * from './features';
 

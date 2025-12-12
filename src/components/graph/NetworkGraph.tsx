@@ -1,7 +1,7 @@
 import { useRef, useState, useCallback, useEffect, useMemo } from 'react';
 // @ts-ignore - react-force-graph-2d types
 import ForceGraph2D from 'react-force-graph-2d';
-import { Button } from "@/components/core/ui/button';
+import { Button } from "@/components/core/ui/button";
 import {
 	Plus,
 	Search,
@@ -14,7 +14,7 @@ import {
 	Network,
 	Sparkles,
 } from 'lucide-react';
-import { Input } from "@/components/core/ui/input';
+import { Input } from "@/components/core/ui/input";
 import { toast } from 'sonner';
 import { LinkManager } from '@/components/graph/LinkManager';
 import { DynamicLinkManager } from '@/components/graph/DynamicLinkManager';
@@ -26,17 +26,17 @@ import {
 	Popover,
 	PopoverContent,
 	PopoverTrigger,
-} from "@/components/core/ui/popover';
+} from "@/components/core/ui/popover";
 import {
 	Sheet,
 	SheetContent,
 	SheetHeader,
 	SheetTitle,
 	SheetTrigger,
-} from "@/components/core/ui/sheet';
-import { Label } from "@/components/core/ui/label';
-import { Slider } from "@/components/core/ui/slider';
-import { Badge } from "@/components/core/ui/badge';
+} from "@/components/core/ui/sheet";
+import { Label } from "@/components/core/ui/label";
+import { Slider } from "@/components/core/ui/slider";
+import { Badge } from "@/components/core/ui/badge";
 
 import { resolveColor, colorWithOpacity } from '@/services/core/utils/color-utils';
 
