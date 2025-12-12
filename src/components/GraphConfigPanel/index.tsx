@@ -33,7 +33,7 @@ import {
   TopologyConfig,
   LinkStyle,
   LinkStats,
-} from '@/hooks/useGraphConfig';
+} from '@/stores/useGraphStore';
 import { NodeStylingTab } from './NodeStylingTab';
 import { LinkStylingTab } from './LinkStylingTab';
 import { ForceEngineTab } from './ForceEngineTab';

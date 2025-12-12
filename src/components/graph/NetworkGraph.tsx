@@ -19,8 +19,8 @@ import { toast } from 'sonner';
 import { LinkManager } from '@/components/graph/LinkManager';
 import { DynamicLinkManager } from '@/components/graph/DynamicLinkManager';
 import { GraphMiniMap } from '@/components/graph/GraphMiniMap';
-import { useTheme } from '@/hooks/useTheme';
-import { GraphConfigState } from '@/hooks/useGraphConfig';
+import { useThemeStore } from '@/stores/useThemeStore';
+import { GraphConfigState } from '@/stores/useGraphStore';
 import { useVaultEvents, EventType } from '@/hooks/useVaultEvents';
 import {
 	Popover,
@@ -231,7 +231,7 @@ export const NetworkGraph = ({
 	const internalGraphRef = useRef<any>();
 	const graphRef = externalGraphRef || internalGraphRef;
 	const containerRef = useRef<HTMLDivElement>(null);
-	const { theme } = useTheme();
+	const theme = useThemeStore((state) => state.theme);
 	const graphConfig = externalGraphConfig || defaultGraphConfig;
 
 	const [searchQuery, setSearchQuery] = useState('');

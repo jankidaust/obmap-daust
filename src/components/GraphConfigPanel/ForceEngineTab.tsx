@@ -22,7 +22,7 @@ import {
   Timer,
   Magnet,
 } from 'lucide-react';
-import { ForceConfig } from '@/hooks/useGraphConfig';
+import { ForceConfig } from '@/stores/useGraphStore';
 import { CollapsibleSection } from './CollapsibleSection';
 
 interface ForceEngineTabProps {

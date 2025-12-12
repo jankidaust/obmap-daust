@@ -14,10 +14,17 @@ import { toast } from 'sonner';
 import { extractMentions } from '@/lib/markdownParser';
 import { getVaultManager } from '@/services/vault/VaultManagerSingleton';
 import { useAutoLinks } from '@/hooks/useAutoLinks';
-import { useGraphConfig, GraphConfigState } from '@/hooks/useGraphConfig';
 import { useAuth } from '@/hooks/useAuth';
 import { vaultSyncService } from '@/services/vault/VaultSyncService';
-import { useNodeStore, useVaultStore, type Node, type GraphData, type Backlink } from '@/stores';
+import { 
+  useNodeStore, 
+  useVaultStore, 
+  useGraphStore,
+  type Node, 
+  type GraphData, 
+  type Backlink,
+  type GraphConfigState,
+} from '@/stores';
 
 const Index = () => {
   const vaultManager = getVaultManager();
@@ -51,6 +58,20 @@ const Index = () => {
   const updateUndoRedoState = useVaultStore((state) => state.updateUndoRedoState);
   const resetVault = useVaultStore((state) => state.reset);
 
+  // Graph store
+  const graphConfig = useGraphStore((state) => state.config);
+  const graphStats = useGraphStore((state) => state.stats);
+  const isDirty = useGraphStore((state) => state.isDirty);
+  const updateNodeConfig = useGraphStore((state) => state.updateNodeConfig);
+  const updateLinkConfig = useGraphStore((state) => state.updateLinkConfig);
+  const updateTopologyConfig = useGraphStore((state) => state.updateTopologyConfig);
+  const updateTopologyStyle = useGraphStore((state) => state.updateTopologyStyle);
+  const updateForceConfig = useGraphStore((state) => state.updateForceConfig);
+  const resetConfig = useGraphStore((state) => state.resetConfig);
+  const loadConfig = useGraphStore((state) => state.loadConfig);
+  const computeStats = useGraphStore((state) => state.computeStats);
+  const markClean = useGraphStore((state) => state.markClean);
+
   // Helper to save with status indicator and cloud sync
   const saveVault = useCallback(async () => {
     if (!currentVaultId) return;
@@ -73,47 +94,29 @@ const Index = () => {
     }
   }, [currentVaultId, vaultManager, isAuthenticated, setSaveStatus, setLastSaved]);
 
-  // Auto-generate links based on hierarchy, tags, and backlinks
-  const tempAutoLinks = useAutoLinks(nodes, {
-    hierarchy: true,
-    tags: true,
-    backlinks: true,
-    tagThreshold: 1,
-  });
+  // Save graph config to vault when dirty
+  useEffect(() => {
+    if (isDirty && currentVaultId) {
+      const saveConfig = async () => {
+        await vaultManager.setGraphConfig(currentVaultId, graphConfig);
+        markClean();
+      };
+      saveConfig();
+    }
+  }, [isDirty, currentVaultId, graphConfig, vaultManager, markClean]);
 
-  // Callback to save graph config to vault's .vault-config.json (local-folder) or IndexedDB (in-memory)
-  const handleGraphConfigChange = useCallback(
-    async (config: GraphConfigState) => {
-      if (currentVaultId) {
-        await vaultManager.setGraphConfig(currentVaultId, config);
-      }
-    },
-    [currentVaultId, vaultManager]
-  );
-
-  // Graph configuration with stats - connected to per-vault storage
-  const {
-    config: graphConfig,
-    stats: graphStats,
-    updateNodeConfig,
-    updateLinkConfig,
-    updateTopologyConfig,
-    updateTopologyStyle,
-    updateForceConfig,
-    resetConfig,
-  } = useGraphConfig(nodes, tempAutoLinks, {
-    vaultId: currentVaultId,
-    initialConfig: vaultGraphConfig,
-    onConfigChange: handleGraphConfigChange,
-  });
-
-  // Auto-generate links with actual config
+  // Auto-generate links based on topology config
   const autoLinks = useAutoLinks(nodes, {
     hierarchy: graphConfig.topology.showHierarchy,
     tags: graphConfig.topology.showTags,
     backlinks: graphConfig.topology.showBacklinks,
     tagThreshold: graphConfig.topology.tagThreshold,
   });
+
+  // Compute stats when nodes/links change
+  useEffect(() => {
+    computeStats(nodes, autoLinks);
+  }, [nodes, autoLinks, computeStats]);
 
   // Memoized graphData with auto-generated links
   const graphData = useMemo<GraphData>(
@@ -149,12 +152,15 @@ const Index = () => {
       // Load per-vault graph config (from .vault-config.json for local-folder, IndexedDB for in-memory)
       const savedGraphConfig = vaultManager.getGraphConfig(activeVault.id);
       setVaultGraphConfig(savedGraphConfig);
+      // Load config into graph store
+      loadConfig(savedGraphConfig);
       refreshUndoRedoState(activeVault.id);
     } else {
       resetVault();
       resetNodes();
+      loadConfig(null);
     }
-  }, [vaultManager, setCurrentVaultId, setNodes, setVaultGraphConfig, refreshUndoRedoState, resetVault, resetNodes]);
+  }, [vaultManager, setCurrentVaultId, setNodes, setVaultGraphConfig, loadConfig, refreshUndoRedoState, resetVault, resetNodes]);
 
   useEffect(() => {
     const initVaultManager = async () => {
