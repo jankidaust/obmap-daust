@@ -6,8 +6,10 @@
  */
 
 export type ServiceFactory<T = unknown> = () => T | Promise<T>;
-export type ComponentFactory = () => Promise<{ default: React.ComponentType<any> }>;
-export type HookFactory = () => Promise<{ default: (...args: any[]) => any }>;
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+export type ComponentFactory = () => Promise<any>;
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+export type HookFactory = () => Promise<any>;
 
 export interface RouteConfig {
 	path: string;
