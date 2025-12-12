@@ -17,11 +17,11 @@ import {
   History,
   Download
 } from "lucide-react";
-import { Button } from "@/components/ui/button";
-import { Badge } from "@/components/ui/badge";
-import { Input } from "@/components/ui/input";
-import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
-import { Separator } from "@/components/ui/separator";
+import { Button } from "@/components/core/ui/button";
+import { Badge } from "@/components/core/ui/badge";
+import { Input } from "@/components/core/ui/input";
+import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/core/ui/tooltip";
+import { Separator } from "@/components/core/ui/separator";
 import { formatDistanceToNow } from "date-fns";
 import { StorageStrategy } from "@/services/vault/types";
 import { StorageStrategySelector, StorageStrategyBadge } from "./StorageStrategySelector";

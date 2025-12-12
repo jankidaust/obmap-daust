@@ -1,8 +1,8 @@
 import { useNavigate } from "react-router-dom";
-import { useAuth } from "@/hooks/useAuth";
-import { usePWA } from "@/hooks/usePWA";
-import { Button } from "@/components/ui/button";
-import { Badge } from "@/components/ui/badge";
+import { useAuth } from "@/components/auth/hooks/useAuth";
+import { usePWA } from "@/components/sync/hooks/usePWA";
+import { Button } from "@/components/core/ui/button";
+import { Badge } from "@/components/core/ui/badge";
 import { 
   Network, 
   Sparkles, 

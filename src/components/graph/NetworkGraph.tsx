@@ -1,7 +1,7 @@
 import { useRef, useState, useCallback, useEffect, useMemo } from 'react';
 // @ts-ignore - react-force-graph-2d types
 import ForceGraph2D from 'react-force-graph-2d';
-import { Button } from '@/components/ui/button';
+import { Button } from "@/components/core/ui/button';
 import {
 	Plus,
 	Search,
@@ -14,77 +14,31 @@ import {
 	Network,
 	Sparkles,
 } from 'lucide-react';
-import { Input } from '@/components/ui/input';
+import { Input } from "@/components/core/ui/input';
 import { toast } from 'sonner';
 import { LinkManager } from '@/components/graph/LinkManager';
 import { DynamicLinkManager } from '@/components/graph/DynamicLinkManager';
 import { GraphMiniMap } from '@/components/graph/GraphMiniMap';
-import { useThemeStore } from '@/stores/useThemeStore';
-import { GraphConfigState } from '@/stores/useGraphStore';
-import { useVaultEvents, EventType } from '@/hooks/useVaultEvents';
+import { useThemeStore } from "@/services/ui/stores/useThemeStore";
+import { GraphConfigState } from "@/services/ui/stores/useGraphStore";
+import { useVaultEvents, EventType } from "@/components/vault/hooks/useVaultEvents";
 import {
 	Popover,
 	PopoverContent,
 	PopoverTrigger,
-} from '@/components/ui/popover';
+} from "@/components/core/ui/popover';
 import {
 	Sheet,
 	SheetContent,
 	SheetHeader,
 	SheetTitle,
 	SheetTrigger,
-} from '@/components/ui/sheet';
-import { Label } from '@/components/ui/label';
-import { Slider } from '@/components/ui/slider';
-import { Badge } from '@/components/ui/badge';
+} from "@/components/core/ui/sheet';
+import { Label } from "@/components/core/ui/label';
+import { Slider } from "@/components/core/ui/slider';
+import { Badge } from "@/components/core/ui/badge';
 
-// Resolve CSS variable colors to actual HSL values for canvas rendering
-function resolveColor(color: string): string {
-	// If it's already a resolved HSL/HSLA value (no CSS variables), return as-is
-	if (!color.includes('var(')) {
-		return color;
-	}
-
-	// Extract the CSS variable name
-	const varMatch = color.match(/var\(--([^)]+)\)/);
-	if (!varMatch) return color;
-
-	const varName = varMatch[1];
-
-	// Get the computed value from CSS
-	const computedValue = getComputedStyle(document.documentElement)
-		.getPropertyValue(`--${varName}`)
-		.trim();
-
-	if (!computedValue) return color;
-
-	// Replace the var() with the actual value
-	return color.replace(`var(--${varName})`, computedValue);
-}
-
-// Convert color to HSLA with opacity for canvas
-function colorWithOpacity(color: string, opacity: number): string {
-	const resolved = resolveColor(color);
-
-	// If already hsla, adjust opacity
-	if (resolved.startsWith('hsla(')) {
-		return resolved.replace(/,\s*[\d.]+\)$/, `, ${opacity})`);
-	}
-
-	// If hsl, convert to hsla
-	if (resolved.startsWith('hsl(')) {
-		return resolved.replace('hsl(', 'hsla(').replace(')', `, ${opacity})`);
-	}
-
-	// If it's just HSL values without the function wrapper (from CSS var)
-	const hslMatch = resolved.match(/^([\d.]+)\s+([\d.]+)%?\s+([\d.]+)%?$/);
-	if (hslMatch) {
-		return `hsla(${hslMatch[1]}, ${hslMatch[2]}%, ${hslMatch[3]}%, ${opacity})`;
-	}
-
-	// Return as-is if we can't parse it
-	return resolved;
-}
+import { resolveColor, colorWithOpacity } from '@/services/core/utils/color-utils';
 
 interface Node {
 	id: string;

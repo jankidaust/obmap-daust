@@ -8,7 +8,7 @@
  * - Remain fully portable, no database required
  */
 
-import { eventBus, EventType } from '../events/DomainEvents';
+import { eventBus, EventType } from '../core/events';
 import { backgroundSyncService } from '../sync/BackgroundSyncService';
 
 export interface FileSystemNode {

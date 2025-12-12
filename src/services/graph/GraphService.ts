@@ -9,8 +9,8 @@
  * - Expose graph data for visualization
  */
 
-import { eventBus, EventType, DomainEvent } from '../events/DomainEvents';
-import { ContentParser } from './ContentParser';
+import { eventBus, EventType, DomainEvent } from '../core/events';
+import { ContentParser } from '../content/content-parser';
 import { RelationshipMapper, GraphNode, GraphLink } from './RelationshipMapper';
 
 // Event payload interfaces for type safety

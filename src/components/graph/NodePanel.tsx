@@ -1,7 +1,7 @@
 import { useState, useEffect, useRef, useCallback } from "react";
-import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
-import { Textarea } from "@/components/ui/textarea";
+import { Button } from "@/components/core/ui/button";
+import { Input } from "@/components/core/ui/input";
+import { Textarea } from "@/components/core/ui/textarea";
 import { 
   X, Trash2, Save, Folder, FileText, Eye, Code, Split, 
   Image, Music, Video, Link2, Play, Pause, Volume2, VolumeX, 
@@ -9,23 +9,23 @@ import {
   Maximize, Minimize
 } from "lucide-react";
 import { toast } from "sonner";
-import { Badge } from "@/components/ui/badge";
+import { Badge } from "@/components/core/ui/badge";
 import { MarkdownRenderer } from "@/components/graph/MarkdownRenderer";
-import { ScrollArea } from "@/components/ui/scroll-area";
-import { Slider } from "@/components/ui/slider";
-import { cn } from "@/lib/utils";
+import { ScrollArea } from "@/components/core/ui/scroll-area";
+import { Slider } from "@/components/core/ui/slider";
+import { cn } from "@/services/core/utils";
 import {
   DropdownMenu,
   DropdownMenuContent,
   DropdownMenuItem,
   DropdownMenuSeparator,
   DropdownMenuTrigger,
-} from "@/components/ui/dropdown-menu";
+} from "@/components/core/ui/dropdown-menu";
 import {
   Collapsible,
   CollapsibleContent,
   CollapsibleTrigger,
-} from "@/components/ui/collapsible";
+} from "@/components/core/ui/collapsible";
 
 interface Node {
   id: string;

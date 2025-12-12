@@ -11,11 +11,11 @@ import {
   ArrowRight,
   Sparkles
 } from "lucide-react";
-import { Button } from "@/components/ui/button";
-import { Badge } from "@/components/ui/badge";
+import { Button } from "@/components/core/ui/button";
+import { Badge } from "@/components/core/ui/badge";
 import { VaultModeSelector } from "./VaultModeSelector";
 import { getVaultManager } from "@/services/vault/VaultManagerSingleton";
-import { useAuth } from "@/hooks/useAuth";
+import { useAuth } from "@/components/auth/hooks/useAuth";
 import { vaultSyncService } from "@/services/vault/VaultSyncService";
 
 interface VaultRequiredGateProps {

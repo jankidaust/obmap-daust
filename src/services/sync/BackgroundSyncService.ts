@@ -6,7 +6,7 @@
  * to online event listeners.
  */
 
-import { eventBus, EventType, DomainEvent } from '../events/DomainEvents';
+import { eventBus, EventType, DomainEvent } from '../core/events';
 
 interface PendingChange {
   id: string;

@@ -1,12 +1,12 @@
-import { Toaster } from "@/components/ui/toaster";
-import { Toaster as Sonner } from "@/components/ui/sonner";
-import { TooltipProvider } from "@/components/ui/tooltip";
+import { Toaster } from "@/components/core/ui/toaster";
+import { Toaster as Sonner } from "@/components/core/ui/sonner";
+import { TooltipProvider } from "@/components/core/ui/tooltip";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { BrowserRouter, Routes, Route } from "react-router-dom";
-import { ErrorBoundary } from "./components/common/ErrorBoundary";
-import { AuthProvider } from "./hooks/useAuth";
-import { ProtectedRoute } from "./components/common/ProtectedRoute";
-import { EventDebugPanel } from "./components/debug/EventDebugPanel";
+import { ErrorBoundary } from "./components/core/common/ErrorBoundary";
+import { AuthProvider } from "./components/auth/hooks/useAuth";
+import { ProtectedRoute } from "./components/core/common/ProtectedRoute";
+import { EventDebugPanel } from "./components/core/debug/EventDebugPanel";
 import { Suspense, lazy } from "react";
 
 const queryClient = new QueryClient();

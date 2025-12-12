@@ -11,11 +11,11 @@ import {
   Clock,
   ExternalLink
 } from "lucide-react";
-import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
-import { Badge } from "@/components/ui/badge";
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog";
-import { Alert, AlertDescription } from "@/components/ui/alert";
+import { Button } from "@/components/core/ui/button";
+import { Input } from "@/components/core/ui/input";
+import { Badge } from "@/components/core/ui/badge";
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "@/components/core/ui/dialog";
+import { Alert, AlertDescription } from "@/components/core/ui/alert";
 
 type VaultMode = "local-native" | "in-memory";
 type VaultAction = "create" | "open";

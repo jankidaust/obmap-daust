@@ -25,7 +25,7 @@ import {
   emitVaultRenamed,
   emitVaultSwitched,
   emitGraphUpdated,
-} from '../events/DomainEvents';
+} from '../core/events';
 
 export interface Vault {
   id: string;
