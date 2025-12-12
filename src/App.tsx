@@ -2,51 +2,16 @@ import { Toaster } from "@/components/core/ui/toaster";
 import { Toaster as Sonner } from "@/components/core/ui/sonner";
 import { TooltipProvider } from "@/components/core/ui/tooltip";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
-import { BrowserRouter, Routes, Route } from "react-router-dom";
+import { BrowserRouter } from "react-router-dom";
 import { ErrorBoundary } from "./components/core/common/ErrorBoundary";
 import { AuthProvider } from "./components/auth/hooks/useAuth";
-import { ProtectedRoute } from "./components/core/common/ProtectedRoute";
 import { EventDebugPanel } from "./components/core/debug/EventDebugPanel";
-import { Suspense, lazy, useEffect, useState } from "react";
-import { initializeFeatureLoader, getFeatureLoaderState } from "./services/core/feature-loader";
+import { Suspense, useEffect, useState } from "react";
+import { initializeFeatureLoader } from "./services/core/feature-loader";
+import { DynamicRoutes } from "./components/core/routing/DynamicRoutes";
+import { useFeatureConfigStore } from "./services/ui/stores/useFeatureConfigStore";
 
 const queryClient = new QueryClient();
-
-// Lazy load pages with error handling
-const Landing = lazy(() => import("./pages/Landing").catch(err => {
-  console.error("Failed to load Landing:", err);
-  return { default: () => <div className="p-8 text-destructive">Failed to load Landing: {err.message}</div> };
-}));
-
-const Index = lazy(() => import("./pages/Index").catch(err => {
-  console.error("Failed to load Index:", err);
-  return { default: () => <div className="p-8 text-destructive">Failed to load Index: {err.message}</div> };
-}));
-
-const VaultDashboard = lazy(() => import("./pages/VaultDashboard").catch(err => {
-  console.error("Failed to load VaultDashboard:", err);
-  return { default: () => <div className="p-8 text-destructive">Failed to load VaultDashboard: {err.message}</div> };
-}));
-
-const Install = lazy(() => import("./pages/Install").catch(err => {
-  console.error("Failed to load Install:", err);
-  return { default: () => <div className="p-8 text-destructive">Failed to load Install: {err.message}</div> };
-}));
-
-const Auth = lazy(() => import("./pages/Auth").catch(err => {
-  console.error("Failed to load Auth:", err);
-  return { default: () => <div className="p-8 text-destructive">Failed to load Auth: {err.message}</div> };
-}));
-
-const Profile = lazy(() => import("./pages/Profile").catch(err => {
-  console.error("Failed to load Profile:", err);
-  return { default: () => <div className="p-8 text-destructive">Failed to load Profile: {err.message}</div> };
-}));
-
-const NotFound = lazy(() => import("./pages/NotFound").catch(err => {
-  console.error("Failed to load NotFound:", err);
-  return { default: () => <div className="p-8 text-destructive">Failed to load NotFound: {err.message}</div> };
-}));
 
 const LoadingFallback = () => (
   <div className="min-h-screen flex items-center justify-center bg-background">
@@ -59,11 +24,12 @@ const LoadingFallback = () => (
 
 /**
  * Feature Initializer Component
- * Initializes the feature loader on mount
+ * Initializes the feature loader on mount and syncs with config store
  */
 function FeatureInitializer({ children }: { children: React.ReactNode }) {
   const [isInitialized, setIsInitialized] = useState(false);
   const [error, setError] = useState<Error | null>(null);
+  const { syncWithRegistry } = useFeatureConfigStore();
 
   useEffect(() => {
     let mounted = true;
@@ -72,6 +38,8 @@ function FeatureInitializer({ children }: { children: React.ReactNode }) {
       try {
         await initializeFeatureLoader();
         if (mounted) {
+          // Sync feature config store with registry
+          syncWithRegistry();
           setIsInitialized(true);
         }
       } catch (err) {
@@ -89,7 +57,7 @@ function FeatureInitializer({ children }: { children: React.ReactNode }) {
     return () => {
       mounted = false;
     };
-  }, []);
+  }, [syncWithRegistry]);
 
   if (!isInitialized) {
     return <LoadingFallback />;
@@ -113,20 +81,7 @@ const App = () => (
           <AuthProvider>
             <FeatureInitializer>
               <Suspense fallback={<LoadingFallback />}>
-                <Routes>
-                  {/* Public landing page */}
-                  <Route path="/" element={<Landing />} />
-                  <Route path="/auth" element={<Auth />} />
-                  <Route path="/install" element={<Install />} />
-                  
-                  {/* Protected routes */}
-                  <Route path="/app" element={<ProtectedRoute><Index /></ProtectedRoute>} />
-                  <Route path="/profile" element={<ProtectedRoute><Profile /></ProtectedRoute>} />
-                  <Route path="/vaults" element={<ProtectedRoute><VaultDashboard /></ProtectedRoute>} />
-                  
-                  {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
-                  <Route path="*" element={<NotFound />} />
-                </Routes>
+                <DynamicRoutes />
               </Suspense>
             </FeatureInitializer>
           </AuthProvider>
