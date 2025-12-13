@@ -6,23 +6,26 @@
  */
 
 // Feature definitions
-export { coreFeature } from './core';
-export { authFeature } from './auth';
-export { vaultFeature } from './vault';
-export { graphFeature } from './graph';
-export { syncFeature } from './sync';
-export { profileFeature } from './profile';
+export { coreFeature } from './core/feature';
+export { authFeature } from './auth/feature';
+export { vaultFeature } from './vault/feature';
+export { graphFeature } from './graph/feature';
+export { syncFeature } from './sync/feature';
+export { profileFeature } from './profile/feature';
 
 // All features array for registration
-export const allFeatures = [
-  // Note: Import order matters for dependency resolution
-  // Core must be first, then features with dependencies
-];
+import { coreFeature } from './core/feature';
+import { authFeature } from './auth/feature';
+import { vaultFeature } from './vault/feature';
+import { graphFeature } from './graph/feature';
+import { syncFeature } from './sync/feature';
+import { profileFeature } from './profile/feature';
 
-// Re-export commonly used items from features
-export * from './core';
-export * from './auth';
-export * from './vault';
-export * from './graph';
-export * from './sync';
-export * from './profile';
+export const allFeatures = [
+  coreFeature,
+  authFeature,
+  vaultFeature,
+  graphFeature,
+  syncFeature,
+  profileFeature,
+];
