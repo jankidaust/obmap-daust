@@ -1,16 +1,19 @@
 /**
  * Feature Registry Index
  * 
- * Registers all core features with the plugin registry
+ * Registers all core features with the plugin registry.
+ * This file bridges the old services structure with the new feature-sliced design.
  */
 
 import { pluginRegistry } from '../plugin-registry';
-import { coreFeature } from './core-feature';
-import { authFeature } from './auth-feature';
-import { vaultFeature } from './vault-feature';
-import { graphFeature } from './graph-feature';
-import { syncFeature } from './sync-feature';
-import { profileFeature } from './profile-feature';
+
+// Import features from feature definition files (not barrels)
+import { coreFeature } from '@/features/core/feature';
+import { authFeature } from '@/features/auth/feature';
+import { vaultFeature } from '@/features/vault/feature';
+import { graphFeature } from '@/features/graph/feature';
+import { syncFeature } from '@/features/sync/feature';
+import { profileFeature } from '@/features/profile/feature';
 
 // All available features
 export const allFeatures = [
@@ -54,9 +57,4 @@ export async function cleanupFeatures(): Promise<void> {
 }
 
 // Re-export individual features
-export { coreFeature } from './core-feature';
-export { authFeature } from './auth-feature';
-export { vaultFeature } from './vault-feature';
-export { graphFeature } from './graph-feature';
-export { syncFeature } from './sync-feature';
-export { profileFeature } from './profile-feature';
+export { coreFeature, authFeature, vaultFeature, graphFeature, syncFeature, profileFeature };
