@@ -5,19 +5,19 @@
 export { vaultFeature } from './feature';
 
 // Components
-export { VaultCard } from '@/components/vault/VaultCard';
-export { VaultModeSelector } from '@/components/vault/VaultModeSelector';
-export { VaultRequiredGate } from '@/components/vault/VaultRequiredGate';
-export { VaultComparisonView } from '@/components/vault/VaultComparisonView';
-export { VaultBackupPanel } from '@/components/vault/VaultBackupPanel';
-export { VaultBackupSettings } from '@/components/vault/VaultBackupSettings';
-export { StorageStrategySelector } from '@/components/vault/StorageStrategySelector';
-export { ExportToFileSystem } from '@/components/vault/ExportToFileSystem';
+export { VaultCard } from './components/VaultCard';
+export { VaultModeSelector } from './components/VaultModeSelector';
+export { VaultRequiredGate } from './components/VaultRequiredGate';
+export { VaultComparisonView } from './components/VaultComparisonView';
+export { VaultBackupPanel } from './components/VaultBackupPanel';
+export { VaultBackupSettings } from './components/VaultBackupSettings';
+export { StorageStrategySelector } from './components/StorageStrategySelector';
+export { ExportToFileSystem } from './components/ExportToFileSystem';
 
 // Hooks
-export { useVault } from '@/components/vault/hooks/useVault';
-export { useVaultEvents } from '@/components/vault/hooks/useVaultEvents';
-export { useVaultSync } from '@/components/vault/hooks/useVaultSync';
+export { useVault } from './hooks/useVault';
+export { useVaultEvents } from './hooks/useVaultEvents';
+export { useVaultSync } from './hooks/useVaultSync';
 
 // Services
 export { VaultManager } from '@/services/vault/VaultManager';

@@ -5,12 +5,12 @@
 export { syncFeature } from './feature';
 
 // Components
-export { SyncStatusIndicator } from '@/components/sync/SyncStatusIndicator';
-export { OfflineIndicator } from '@/components/sync/OfflineIndicator';
-export { AutoSaveIndicator } from '@/components/sync/AutoSaveIndicator';
+export { SyncStatusIndicator } from './components/SyncStatusIndicator';
+export { OfflineIndicator } from './components/OfflineIndicator';
+export { AutoSaveIndicator } from './components/AutoSaveIndicator';
 
 // Hooks
-export { usePWA } from '@/components/sync/hooks/usePWA';
+export { usePWA } from './hooks/usePWA';
 
 // Services
 export { BackgroundSyncService } from '@/services/sync/BackgroundSyncService';

@@ -5,8 +5,8 @@
 export { authFeature } from './feature';
 
 // Components
-export { AuthForm } from '@/components/auth/AuthForm';
-export { PasswordStrengthIndicator } from '@/components/auth/PasswordStrengthIndicator';
+export { AuthForm } from './components/AuthForm';
+export { PasswordStrengthIndicator } from './components/PasswordStrengthIndicator';
 
 // Hooks
-export { AuthProvider, useAuth } from '@/components/auth/hooks/useAuth';
+export { AuthProvider, useAuth } from './hooks/useAuth';
