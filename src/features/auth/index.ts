@@ -2,23 +2,11 @@
  * Auth Feature Module
  */
 
-import type { Feature } from '@/features/core/services/plugin-registry';
+export { authFeature } from './feature';
 
-export const authFeature: Feature = {
-  id: 'auth',
-  name: 'Authentication',
-  version: '1.0.0',
-  dependencies: ['core'],
-  services: [],
-  components: {
-    AuthForm: () => import('@/components/auth/AuthForm'),
-    PasswordStrengthIndicator: () => import('@/components/auth/PasswordStrengthIndicator'),
-    Auth: () => import('@/pages/Auth'),
-  },
-  routes: [{ path: '/auth', component: 'Auth', protected: false }],
-  hooks: { useAuth: () => import('@/components/auth/hooks/useAuth') },
-  initialize: async () => console.log('[AuthFeature] Initialized'),
-  cleanup: async () => console.log('[AuthFeature] Cleaned up'),
-};
+// Components
+export { AuthForm } from '@/components/auth/AuthForm';
+export { PasswordStrengthIndicator } from '@/components/auth/PasswordStrengthIndicator';
 
+// Hooks
 export { AuthProvider, useAuth } from '@/components/auth/hooks/useAuth';

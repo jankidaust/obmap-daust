@@ -7,13 +7,13 @@
 import React, { ComponentType, lazy } from 'react';
 import { pluginRegistry, type Feature, type RouteConfig, type ComponentFactory } from './plugin-registry';
 
-// Import all features - using existing locations during migration
-import { coreFeature } from '@/services/core/features/core-feature';
-import { authFeature } from '@/services/core/features/auth-feature';
-import { vaultFeature } from '@/services/core/features/vault-feature';
-import { graphFeature } from '@/services/core/features/graph-feature';
-import { syncFeature } from '@/services/core/features/sync-feature';
-import { profileFeature } from '@/services/core/features/profile-feature';
+// Import feature definitions (not barrel files to avoid circular deps)
+import { coreFeature } from '@/features/core/feature';
+import { authFeature } from '@/features/auth/feature';
+import { vaultFeature } from '@/features/vault/feature';
+import { graphFeature } from '@/features/graph/feature';
+import { syncFeature } from '@/features/sync/feature';
+import { profileFeature } from '@/features/profile/feature';
 
 export interface FeatureLoaderState {
   isLoading: boolean;

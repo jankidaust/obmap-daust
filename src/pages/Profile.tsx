@@ -1,7 +1,7 @@
 import { useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { useAuth } from "@/components/auth/hooks/useAuth";
-import { ProfileSettings } from '@/components/profile/ProfileSettings';
+import { useAuth } from "@/features/auth";
+import { ProfileSettings } from "@/features/profile";
 import { Button } from "@/components/core/ui/button";
 import { ArrowLeft, Loader2, LogOut } from 'lucide-react';
 
