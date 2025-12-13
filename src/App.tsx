@@ -3,12 +3,9 @@ import { Toaster as Sonner } from "@/components/core/ui/sonner";
 import { TooltipProvider } from "@/components/core/ui/tooltip";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { BrowserRouter } from "react-router-dom";
-import { ErrorBoundary } from "@/features/core";
+import { ErrorBoundary, EventDebugPanel, DynamicRoutes, initializeFeatureLoader } from "@/features/core";
 import { AuthProvider } from "@/features/auth";
-import { EventDebugPanel } from "@/components/core/debug/EventDebugPanel";
 import { Suspense, useEffect, useState } from "react";
-import { initializeFeatureLoader } from "@/features/core/services/feature-loader";
-import { DynamicRoutes } from "@/components/core/routing/DynamicRoutes";
 import { useFeatureConfigStore } from "@/services/ui/stores/useFeatureConfigStore";
 
 const queryClient = new QueryClient();

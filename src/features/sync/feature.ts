@@ -13,12 +13,12 @@ export const syncFeature: Feature = {
     { name: 'BackgroundSyncService', factory: async () => { const { BackgroundSyncService } = await import('@/services/sync/BackgroundSyncService'); return new BackgroundSyncService(); }, singleton: true },
   ],
   components: {
-    AutoSaveIndicator: () => import('@/components/sync/AutoSaveIndicator'),
-    OfflineIndicator: () => import('@/components/sync/OfflineIndicator'),
-    SyncStatusIndicator: () => import('@/components/sync/SyncStatusIndicator'),
+    AutoSaveIndicator: () => import('./components/AutoSaveIndicator'),
+    OfflineIndicator: () => import('./components/OfflineIndicator'),
+    SyncStatusIndicator: () => import('./components/SyncStatusIndicator'),
   },
   routes: [],
-  hooks: { usePWA: () => import('@/components/sync/hooks/usePWA') },
+  hooks: { usePWA: () => import('./hooks/usePWA') },
   initialize: async () => console.log('[SyncFeature] Initialized'),
   cleanup: async () => console.log('[SyncFeature] Cleaned up'),
 };

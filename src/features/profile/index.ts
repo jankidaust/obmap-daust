@@ -5,10 +5,10 @@
 export { profileFeature } from './feature';
 
 // Components
-export { ProfileSettings } from '@/components/profile/ProfileSettings';
-export { ApiKeyManager } from '@/components/profile/ApiKeyManager';
-export { AvatarUpload } from '@/components/profile/AvatarUpload';
-export { FeatureConfigPanel } from '@/components/profile/FeatureConfigPanel';
+export { ProfileSettings } from './components/ProfileSettings';
+export { ApiKeyManager } from './components/ApiKeyManager';
+export { AvatarUpload } from './components/AvatarUpload';
+export { FeatureConfigPanel } from './components/FeatureConfigPanel';
 
 // Services
 export { ApiKeyService } from '@/services/apikeys/ApiKeyService';

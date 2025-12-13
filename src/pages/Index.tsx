@@ -1,8 +1,7 @@
 import { useMemo, useEffect, useCallback } from 'react';
 import { NetworkGraph, NodePanel, GraphConfigPanel, useAutoLinks } from '@/features/graph';
-import { UnifiedLayout } from '@/components/core/layout/UnifiedLayout';
-import { PWAInstallPrompt, PWAStatusBadge } from "@/components/core/common/PWAInstallPrompt";
-import { SyncStatusIndicator, OfflineIndicator, AutoSaveIndicator } from '@/features/sync';
+import { UnifiedLayout, PWAInstallPrompt, PWAStatusBadge } from '@/features/core';
+import { SyncStatusIndicator, AutoSaveIndicator, OfflineIndicator } from '@/features/sync';
 import { toast } from 'sonner';
 import { extractMentions } from '@/services/content/markdown-parser';
 import { getVaultManager, vaultSyncService } from '@/features/vault';
