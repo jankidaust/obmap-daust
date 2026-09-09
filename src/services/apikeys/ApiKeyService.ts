@@ -5,7 +5,7 @@
  */
 
 import { supabase } from "@/services/integrations/supabase/client";
-import type { Database, Json } from "@/services/integrations/supabase/types";
+import type { Json } from "@/services/integrations/supabase/types";
 
 export interface ApiKey {
   id: string;
@@ -176,7 +176,7 @@ export class ApiKeyService {
       is_active?: boolean;
     }
   ): Promise<{ error: Error | null }> {
-    const updateData = {} as Database['public']['Tables']['user_api_keys']['Update'];
+    const updateData: Record<string, any> = {};
     if (updates.name !== undefined) updateData.name = updates.name;
     if (updates.permissions !== undefined) updateData.permissions = updates.permissions as unknown as Json;
     if (updates.expires_at !== undefined) updateData.expires_at = updates.expires_at;

@@ -7,12 +7,19 @@ import {
 import { Button } from "@/components/core/ui/button";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/core/ui/dialog";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/core/ui/tabs";
-import { VaultCard, VaultBackupPanel, VaultComparisonView, VaultModeSelector, ExportToFileSystem, useVaultSync, getVaultManager } from "@/features/vault";
-import { VaultBackupSettingsContent } from "@/features/vault/components/VaultBackupSettings";
-import { ProfileSettings, AvatarUpload } from "@/features/profile";
+import { VaultCard } from "@/components/vault/VaultCard";
+import { VaultBackupPanel } from "@/components/vault/VaultBackupPanel";
+import { VaultBackupSettingsContent } from "@/components/vault/VaultBackupSettings";
+import { VaultComparisonView } from "@/components/vault/VaultComparisonView";
+import { VaultModeSelector } from "@/components/vault/VaultModeSelector";
+import { ExportToFileSystem } from "@/components/vault/ExportToFileSystem";
+import { ProfileSettings } from "@/components/profile/ProfileSettings";
+import { AvatarUpload } from "@/components/profile/AvatarUpload";
 import { Badge } from "@/components/core/ui/badge";
 import { toast } from "sonner";
-import { useAuth } from "@/features/auth";
+import { getVaultManager } from "@/services/vault/VaultManagerSingleton";
+import { useAuth } from "@/components/auth/hooks/useAuth";
+import { useVaultSync } from "@/components/vault/hooks/useVaultSync";
 
 import { StorageStrategy } from "@/services/vault/types";
 

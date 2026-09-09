@@ -1,11 +1,21 @@
 import { useMemo, useEffect, useCallback } from 'react';
-import { NetworkGraph, NodePanel, GraphConfigPanel, useAutoLinks } from '@/features/graph';
-import { UnifiedLayout, PWAInstallPrompt, PWAStatusBadge } from '@/features/core';
-import { SyncStatusIndicator, AutoSaveIndicator, OfflineIndicator } from '@/features/sync';
+import { NetworkGraph } from '@/components/graph/NetworkGraph';
+import { NodePanel } from '@/components/graph/NodePanel';
+import { UnifiedLayout } from '@/components/core/layout/UnifiedLayout';
+import { GraphConfigPanel } from '@/components/graph/config-panel';
+import {
+  PWAInstallPrompt,
+  PWAStatusBadge,
+} from "@/components/core/common/PWAInstallPrompt";
+import { SyncStatusIndicator } from '@/components/sync/SyncStatusIndicator';
+import { OfflineIndicator } from '@/components/sync/OfflineIndicator';
+import { AutoSaveIndicator } from '@/components/sync/AutoSaveIndicator';
 import { toast } from 'sonner';
 import { extractMentions } from '@/services/content/markdown-parser';
-import { getVaultManager, vaultSyncService } from '@/features/vault';
-import { useAuth } from "@/features/auth";
+import { getVaultManager } from '@/services/vault/VaultManagerSingleton';
+import { useAutoLinks } from "@/components/graph/hooks/useAutoLinks";
+import { useAuth } from "@/components/auth/hooks/useAuth";
+import { vaultSyncService } from '@/services/vault/VaultSyncService';
 import { 
   useNodeStore, 
   useVaultStore, 
