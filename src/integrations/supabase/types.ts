@@ -62,6 +62,163 @@ export type Database = {
         }
         Relationships: []
       }
+      user_api_keys: {
+        Row: {
+          created_at: string
+          expires_at: string | null
+          id: string
+          is_active: boolean
+          key_hash: string
+          key_prefix: string
+          last_used_at: string | null
+          name: string
+          permissions: Json
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          expires_at?: string | null
+          id?: string
+          is_active?: boolean
+          key_hash: string
+          key_prefix: string
+          last_used_at?: string | null
+          name: string
+          permissions?: Json
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          expires_at?: string | null
+          id?: string
+          is_active?: boolean
+          key_hash?: string
+          key_prefix?: string
+          last_used_at?: string | null
+          name?: string
+          permissions?: Json
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
+      user_vaults: {
+        Row: {
+          backup_config: Json | null
+          created_at: string
+          description: string | null
+          encryption_key_hash: string | null
+          graph_config: Json | null
+          graph_data: Json
+          id: string
+          is_encrypted: boolean
+          last_synced_at: string | null
+          name: string
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          backup_config?: Json | null
+          created_at?: string
+          description?: string | null
+          encryption_key_hash?: string | null
+          graph_config?: Json | null
+          graph_data?: Json
+          id?: string
+          is_encrypted?: boolean
+          last_synced_at?: string | null
+          name: string
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          backup_config?: Json | null
+          created_at?: string
+          description?: string | null
+          encryption_key_hash?: string | null
+          graph_config?: Json | null
+          graph_data?: Json
+          id?: string
+          is_encrypted?: boolean
+          last_synced_at?: string | null
+          name?: string
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
+      vault_backups: {
+        Row: {
+          created_at: string
+          id: string
+          links: Json
+          nodes: Json
+          reason: string | null
+          user_id: string
+          vault_id: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          links?: Json
+          nodes?: Json
+          reason?: string | null
+          user_id: string
+          vault_id: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          links?: Json
+          nodes?: Json
+          reason?: string | null
+          user_id?: string
+          vault_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "vault_backups_vault_id_fkey"
+            columns: ["vault_id"]
+            isOneToOne: false
+            referencedRelation: "user_vaults"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      vault_history: {
+        Row: {
+          created_at: string
+          id: string
+          snapshot: Json
+          user_id: string
+          vault_id: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          snapshot: Json
+          user_id: string
+          vault_id: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          snapshot?: Json
+          user_id?: string
+          vault_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "vault_history_vault_id_fkey"
+            columns: ["vault_id"]
+            isOneToOne: false
+            referencedRelation: "user_vaults"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
     }
     Views: {
       [_ in never]: never
