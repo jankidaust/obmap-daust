@@ -176,7 +176,7 @@ export class ApiKeyService {
       is_active?: boolean;
     }
   ): Promise<{ error: Error | null }> {
-    const updateData: Record<string, any> = {};
+    const updateData = {} as Database['public']['Tables']['user_api_keys']['Update'];
     if (updates.name !== undefined) updateData.name = updates.name;
     if (updates.permissions !== undefined) updateData.permissions = updates.permissions as unknown as Json;
     if (updates.expires_at !== undefined) updateData.expires_at = updates.expires_at;

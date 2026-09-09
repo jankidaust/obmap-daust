@@ -158,7 +158,7 @@ export class CloudVaultService {
       backup_config?: Record<string, any>;
     }
   ): Promise<{ error: Error | null }> {
-    const updateData: Record<string, any> = {};
+    const updateData = {} as Database['public']['Tables']['user_vaults']['Update'];
     if (updates.name !== undefined) updateData.name = updates.name;
     if (updates.description !== undefined) updateData.description = updates.description;
     if (updates.graph_data !== undefined) updateData.graph_data = updates.graph_data as unknown as Json;
