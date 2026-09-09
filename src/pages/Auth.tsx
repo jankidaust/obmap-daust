@@ -1,6 +1,7 @@
 import { useEffect } from 'react';
 import { useNavigate, useSearchParams } from 'react-router-dom';
-import { useAuth, AuthForm } from "@/features/auth";
+import { useAuth } from "@/components/auth/hooks/useAuth";
+import { AuthForm } from '@/components/auth/AuthForm';
 import { Loader2 } from 'lucide-react';
 
 export default function Auth() {
