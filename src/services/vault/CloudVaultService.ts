@@ -5,7 +5,7 @@
  */
 
 import { supabase } from "@/services/integrations/supabase/client";
-import type { Json } from "@/services/integrations/supabase/types";
+import type { Database, Json } from "@/services/integrations/supabase/types";
 
 export interface CloudVault {
   id: string;
