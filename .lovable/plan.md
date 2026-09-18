@@ -1,238 +1,335 @@
-# PLAN.md — Obsidian-grade Knowledge Base: Architecture Blueprint
+# Advanced Interactive Mindmap Engine — Technical Implementation Plan
 
-On approval this document is written to `PLAN.md` at the project root and Phase 1 begins.
+## Objective
 
-## 1. Executive Summary & GAP Analysis
+Build one production graph surface powered exclusively by `react-force-graph-2d` v1.29.0+ for rendering, camera control, dragging, hit testing, and events. Replace the parallel hand-written Canvas renderer and direct application dependencies on `d3-force`, `d3-hierarchy`, and `d3-path` with deterministic TypeScript layout math that assigns node `fx`/`fy` coordinates.
 
-Current state (verified): 154 source files, ~25.7K lines. Vite + React 18 + TS + Tailwind/shadcn + Zustand (6 stores) + Lovable Cloud. Graph rendering via `react-force-graph-2d` (Canvas, D3-force under the hood). Markdown editing is a plain `<Textarea>` inside `NodePanel.tsx` with `react-markdown` for display. No CodeMirror, no metadata cache, no workspace model.
+On approval, this blueprint will also be delivered as root-level `plan.md` before implementation begins.
 
-Identified smells and risks:
+## Verified Current State
 
-| Area | Finding | Evidence |
-|---|---|---|
-| Monoliths | 5 files over 550 lines mixing UI + logic | `NetworkGraph.tsx` 860, `NodePanel.tsx` 760, `ImportExportService.ts` 735, `VaultManager.ts` 597, `Index.tsx` 553 (45 hook calls) |
-| Duplicates | Two toast hooks; two Supabase client + types dirs | `components/ui/use-toast.ts` + `components/core/ui/use-toast.ts` -> `core/hooks/useToast.ts`; `src/integrations/supabase/*` and `src/services/integrations/supabase/*` (3 services import the non-canonical copy) |
-| Dead DI | `container.ts` defines 13 `ServiceIds` but zero `register`/`resolve` calls exist; `plugin-registry.ts` (378 lines) has no consumer outside `services/core` | grep results |
-| God object | `VaultManager` owns vault CRUD, undo/redo, graph config, backups, auto-backup timers, cloud ids | 30 public methods |
-| Parser duplication | `content-parser.ts` and `markdown-parser.ts` both export `ParsedContent`; regex-based, no incremental parsing | `services/content/*` |
-| Store shape | `useGraphStore` (464 lines) holds config + stats + actions in one flat object; consumers select whole objects, causing re-render storms | store files |
-| Layout | `UnifiedLayout` + `DesktopLayout` + `MobileLayout` + `WorkspaceTabs` implement a single-pane tab strip with prop drilling (20+ props); no split/leaf model | `layout/*` |
-| Loops | Bidirectional sync selectedNode <-> activeTab in `UnifiedLayout` guarded by a ref (fragile) | `UnifiedLayout.tsx` L106-142 |
-| Stale FSD | `.cursor/plans` migration was never applied; `src/features` does not exist | filesystem |
+- `GraphLeaf` switches between `NetworkGraph` and `CanvasGraph`; only force mode normally uses `react-force-graph-2d`.
+- `CanvasGraph` owns a second camera, wheel/pan/drag loop, hit testing, canvas rendering, minimap adapter, and worker-based layout pipeline.
+- `layouts.ts` directly imports `d3-force` and `d3-hierarchy`; `linkRouter.ts` directly imports `d3-path`.
+- `package.json` contains those three runtime packages and their three `@types/*` packages; `react-force-graph-2d` is already `^1.29.0`.
+- Existing layout names are `force | timeline | tree | fishbone`; the new public vocabulary will be `free-force | timeline | mindmap | fishbone`.
+- Collapse state and filtering are currently duplicated across both renderers. Graph configuration is persisted in Zustand, but interaction state is local to each renderer.
 
-Refactoring priorities: (1) kill duplicates and wire DI, (2) split god objects into Vault/MetadataCache/FileManager, (3) replace Textarea with CodeMirror 6, (4) formal Workspace model, (5) graph scale-up.
-
-## 2. Target System Architecture
+## Target Architecture
 
 ```text
-+--------------------+     +---------------------+     +----------------------+
-|   Storage Adapters |     |     Vault Core      |     |    MetadataCache     |
-| FileSystemAdapter  |<--->| Vault (TFile/TFolder|---->| links/backlinks/tags |
-| IndexedDBAdapter   |     |  read/modify/rename)|     | frontmatter/headings |
-| CloudAdapter(Supa) |     +----------+----------+     | (Web Worker parser)  |
-+--------------------+                |                +----------+-----------+
-        ^                             | emits                     | resolves
-        | SyncEngine                  v                           v
-+-------+-----------+       +---------+----------+     +----------+-----------+
-| BackgroundSync    |       |      EventBus      |<----|     FileManager      |
-| conflict/backups  |       | typed domain events|     | rename + link refac  |
-+-------------------+       +---------+----------+     +----------------------+
-                                      |
-              +-----------------------+-----------------------+
-              v                       v                       v
-      +---------------+      +----------------+      +-----------------+
-      | Editor Engine |      |  Graph Engine  |      |  Command/Suggest|
-      | CM6 + Lezer   |      | worker d3-force|      | palette, [[ # . |
-      | MarkdownView  |      | Pixi/Canvas    |      +-----------------+
-      +-------+-------+      +-------+--------+
-              \                      /
-               v                    v
-          +----------------------------------+
-          |  Workspace (root) -> Split -> Leaf|
-          |  Ribbon | Leaves | StatusBar      |
-          +----------------------------------+
+Vault GraphData
+     |
+     v
+Graph projection/indexes --------> useGraphInteractionStore (Zustand)
+(parent/children/date/category)      selected, hovered, collapsed,
+     |                               focused root, transition
+     v
+useLayoutEngine
+  |-- freeForce.ts   -> clears fx/fy
+  |-- mindmap.ts     -> deterministic targets
+  |-- timeline.ts    -> deterministic targets + axis geometry
+  `-- fishbone.ts    -> deterministic targets + spine/rib geometry
+     |
+     v
+LayoutTransitionController
+(current x/y -> interpolated fx/fy -> final fx/fy)
+     |
+     v
+GraphCanvas.tsx
+  react-force-graph-2d
+  |-- nodeCanvasObject / nodePointerAreaPaint
+  |-- linkCanvasObject
+  |-- onRenderFramePre for non-link decorations
+  |-- wrapper camera, drag, click, hover, zoom APIs
+  `-- GraphMiniMap adapter
 ```
 
-## 3. Target File & Folder Blueprint
+### Proposed Feature-Sliced Structure
 
 ```text
-src/
-  app/                      App.tsx, routes.tsx, providers.tsx, bootstrap.ts (DI wiring)
-  shared/
-    ui/                     shadcn primitives (single copy)
-    lib/                    cn, color-utils, fuzzy.ts, debounce
-    hooks/                  useToast (ONLY copy), useMobile
-    events/                 event-bus.ts, event-types.ts
-    di/                     container.ts, service-ids.ts
-    integrations/supabase/  re-exports @/integrations/supabase/client (auto-gen stays put)
-  core/
-    vault/                  Vault.ts, TFile.ts, adapters/{FileSystem,IndexedDB,Cloud}Adapter.ts
-    metadata/               MetadataCache.ts, parser.worker.ts, LinkResolver.ts
-    file-manager/           FileManager.ts (rename + wikilink refactor + orphans)
-    history/                VaultHistory.ts (from VaultManager)
-    backup/                 BackupService.ts (from VaultManager)
-    sync/                   SyncEngine.ts, BackgroundSyncService.ts
-    commands/               CommandRegistry.ts
-    plugins/                PluginRegistry.ts, Feature.ts
-  features/
-    editor/                 MarkdownView.tsx, cm/{state,extensions,decorations,suggest}/, frontmatter/, toolbar/
-    workspace/              Workspace.ts (store), WorkspaceRoot.tsx, Leaf.tsx, Split.tsx, Ribbon.tsx, StatusBar.tsx
-    graph/                  GraphView.tsx, engine/{ForceWorker.ts,Renderer.ts}, config-panel/, store/
-    backlinks/              BacklinksView.tsx, UnlinkedMentions.tsx
-    command-palette/        CommandPalette.tsx (cmdk)
-    vault-dashboard/        pages + cards + mode selector
-    auth/  profile/  import-export/  pwa/
-  pages/                    thin route wrappers only
+src/features/graph/
+  GraphCanvas.tsx                 # sole graph renderer and wrapper integration
+  model/
+    graphTypes.ts                 # render-node/link and layout contracts
+    buildGraphProjection.ts       # normalized IDs, hierarchy, dates, categories
+    useGraphInteractionStore.ts   # global interaction state via Zustand
+  layout/
+    useLayoutEngine.ts
+    layoutMath.ts                 # clamp, lerp, easing, bounds, text metrics
+    freeForce.ts
+    mindmap.ts
+    timeline.ts
+    fishbone.ts
+    transitionController.ts
+  render/
+    drawNode.ts
+    drawLink.ts
+    drawArrowhead.ts
+    drawDecorations.ts
+    textLayout.ts
+    theme.ts
+  interactions/
+    graphTraversal.ts             # ancestors, descendants, visible projection
+    focusGraph.ts                 # focus node/subtree and fit bounds
+    graphMutations.ts             # add/delete/collapse operations
+  __tests__/
+    fixtures.ts
+    mindmap.test.ts
+    timeline.test.ts
+    fishbone.test.ts
+    traversal.test.ts
 ```
 
-Moves (examples): `services/vault/VaultManager.ts` -> split into `core/vault/Vault.ts`, `core/history/`, `core/backup/`; `components/graph/NodePanel.tsx` -> `features/editor/MarkdownView.tsx` + `features/editor/frontmatter/PropertiesPanel.tsx`; `components/core/layout/*` -> `features/workspace/*`; `services/content/*` -> `core/metadata/`; `services/ui/stores/*` -> co-located `store/` per feature. Delete: `components/ui/use-toast.ts`, `services/integrations/supabase/*`, `services/core/features.ts` (fold into `core/plugins`).
+`GraphLeaf` will always render `GraphCanvas`; `CanvasGraph`, its layout worker, and duplicate pointer/camera code are retired after parity is verified. Existing graph and engine settings remain in Zustand and are migrated without losing persisted user preferences.
 
-## 4. Phased Roadmap
-
-### Phase 1 — Core Architecture & Vault Cleanup
-Tasks
-- Create `shared/`, `core/`, `features/`, `app/`; move files with import rewrites (`@/shared/*`, `@/core/*`, `@/features/*` aliases in tsconfig + vite).
-- Delete duplicate toast hook and duplicate Supabase dir; all services import `@/integrations/supabase/client`.
-- Wire DI: `app/bootstrap.ts` registers Vault, MetadataCache, FileManager, SyncEngine, CommandRegistry, EventBus in `container`; React reads via `useService(id)` hook.
-- Split `VaultManager` into `Vault` (CRUD + adapters), `VaultHistory`, `BackupService`; expose `VaultRegistry` for multi-vault switching.
-- Slice stores: `useGraphStore` -> `nodeStyleSlice`, `linkStyleSlice`, `forceSlice`, `statsSlice` combined with `create()(...)`; add `useShallow` selectors; add `subscribeWithSelector` for service-side listeners.
-- Remove selectedNode<->tab loop by making `Workspace` the single source of truth (Phase 3 completes this; Phase 1 removes the ref hack by deriving selection from active leaf).
-Files affected: all of `services/*`, `components/core/*`, `pages/*`, `App.tsx`, `tsconfig.*`, `vite.config.ts`.
-Acceptance: build + typecheck green; zero imports from deleted paths; `container.getRegisteredServices().length >= 6`; no "Maximum update depth" in console across /app, /vaults, /profile.
-
-### Phase 2 — CodeMirror 6 Editor Engine
-Tasks
-- Add deps: `@codemirror/state`, `@codemirror/view`, `@codemirror/language`, `@codemirror/lang-markdown`, `@codemirror/autocomplete`, `@codemirror/commands`, `@codemirror/search`, `@lezer/markdown`, `@lezer/highlight`, `yaml`, `katex`, `mermaid`.
-- `features/editor/cm/state/`: `createEditorState(doc, extensions)`, `EditorApi` (getSelection, replaceRange, posToOffset, getLine).
-- `features/editor/cm/extensions/`: `livePreview.ts` (ViewPlugin that hides syntax marks outside the cursor line via Decoration.replace + Widget for checkboxes/images/embeds), `frontmatterField.ts` (StateField parsing YAML block, exposes typed properties), `wordCountField.ts`, `wikilinkField.ts` (emits link-trigger events), `callouts.ts`, `mathBlocks.ts` (KaTeX widget), `tables.ts`.
-- `MarkdownView.tsx`: mode switcher `source | live | reading`; reading mode renders via `MarkdownPostProcessor` pipeline (AST -> DOM: mermaid, katex, tables, wikilinks). Reuses `react-markdown` only in reading mode until pipeline replaces it.
-- `features/editor/suggest/`: `EditorSuggest` abstract + `WikilinkSuggest` (`[[`), `TagSuggest` (`#`), `PropertySuggest` (`.` in frontmatter); fuzzy index from `MetadataCache` with ranking = fuzzy score + recency boost + link-distance boost.
-- Toolbar + context menu commands: headings 1-6, bold/italic/strike/highlight, lists/task list, blockquote, callout, table, hr, code block, `$..$` / `$$..$$`, footnote, internal link.
-- `features/editor/frontmatter/PropertiesPanel.tsx`: typed inputs (text, number, date, tags multi-select, checkbox) writing back through `EditorApi`.
-- Command palette (`Ctrl/Cmd+P`) via `cmdk` backed by `CommandRegistry`.
-Files affected: replace editor portion of `NodePanel.tsx`; new `features/editor/**`; `core/commands/`.
-Acceptance: typing 50K-char note stays under 16ms/keystroke (Performance panel); toggling live/reading keeps cursor; `[[` shows ranked suggestions under 50ms; frontmatter edits round-trip without reformatting body; all toolbar commands have palette entries.
-
-### Phase 3 — Workspace & Layout System
-Tasks
-- `features/workspace/Workspace.ts` Zustand store: tree of `WorkspaceSplit { direction, children, sizes }` and `WorkspaceLeaf { id, viewType, state, pinned }`; actions `openFile`, `splitLeaf`, `closeLeaf`, `setActiveLeaf`, `moveLeaf`, `serialize/deserialize` (persist per vault).
-- `ViewRegistry`: maps `viewType` -> lazy component (`markdown`, `graph`, `backlinks`, `settings`, `empty`).
-- `Split.tsx` on `react-resizable-panels`; `Leaf.tsx` with tab strip, drag-to-reorder and drag-to-split (dnd-kit); `Ribbon.tsx` (vault switcher, graph toggle, quick actions, plugin-contributed icons); `StatusBar.tsx` (word count from editor StateField, sync state from `useOfflineStore`/SyncEngine, active file path, PWA offline badge).
-- Mobile: same tree, rendered as stacked leaves with a drawer ribbon.
-- Delete `UnifiedLayout`, `DesktopLayout`, `MobileLayout`, `WorkspaceTabs`, `WorkspacePane`.
-Files affected: `components/core/layout/**` (removed), `pages/Index.tsx` (becomes `<WorkspaceRoot/>`), `IconRibbon.tsx`.
-Acceptance: split horizontally/vertically, drag tabs across leaves, layout survives reload per vault, no prop drilling deeper than 2 levels, `Index.tsx` under 80 lines.
-
-### Phase 4 — MetadataCache, FileManager & Graph Synchronization
-Tasks
-- `core/metadata/MetadataCache.ts`: maps `fileCache: Map<path, CachedMetadata>`, `resolvedLinks`, `unresolvedLinks`, `backlinks`, `tags`, `headings`; incremental update on `NODE_UPDATED`; parsing in `parser.worker.ts` (Lezer markdown + yaml) with Comlink; debounced 150ms; full reindex on vault open in chunks of 200 files.
-- `core/file-manager/FileManager.ts`: `renameFile` rewrites `[[old]]`, `[[old|alias]]`, `[[old#heading]]` across affected files in one transaction with undo entry; `getOrphans()`; `trashFile` with backlink warning.
-- Graph engine: move force simulation into `ForceWorker.ts` (d3-force in Web Worker, transferable Float32Array positions); renderer switches Canvas -> Pixi.js (`pixi.js` + `@pixi/graphics`) when nodeCount > 2000; LOD: labels hidden below zoom 0.6, edges culled outside viewport; quadtree hit testing. Graph data derived from `MetadataCache.resolvedLinks` instead of re-parsing.
-- `features/backlinks/`: backlinks from cache; `UnlinkedMentions` scans note bodies with Aho-Corasick over all titles/aliases (in worker), "Link" button rewrites text via `EditorApi`.
-Files affected: `services/content/*` (removed), `services/graph/*`, `NetworkGraph.tsx` (split into `GraphView` + `engine/`), `BacklinksPanel.tsx`, `DynamicLinkManager.tsx`, `useAutoLinks.tsx`.
-Acceptance: 10,000 synthetic notes index under 3s, graph at 10K nodes holds 45+ fps during drag, rename updates all backlinks with one undo step, unlinked mentions appear within 300ms of opening a note.
-
-### Phase 5 — Polish, PWA & Sync
-Tasks
-- `core/sync/SyncEngine.ts`: per-file dirty tracking, last-write-wins with server `updated_at` check, conflict copies (`name (conflict YYYY-MM-DD).md`), offline queue in IndexedDB replayed on reconnect; cloud schema stays `user_vaults`/`vault_backups`.
-- Service worker: precache app shell; runtime cache for vault JSON; background sync tag.
-- Settings view as workspace leaf; feature toggles via `PluginRegistry` persisted in localStorage; plugin lifecycle events on the bus.
-- Memory audits (see section 6); a11y pass on toolbar/palette; lint rule `import/no-restricted-paths` forbidding cross-feature imports except via `shared/` and `core/`.
-Acceptance: Lighthouse PWA installable, offline edit then reconnect syncs without loss, heap stable after opening/closing 200 leaves.
-
-## 5. Interface Definitions
+## Core Contracts
 
 ```ts
-// core/vault
-export interface TFile { path: string; name: string; basename: string; extension: string; stat: { ctime: number; mtime: number; size: number }; parent: TFolder | null }
-export interface TFolder { path: string; name: string; children: (TFile | TFolder)[] }
-export interface StorageAdapter {
-  readonly kind: 'filesystem' | 'indexeddb' | 'cloud';
-  list(): Promise<TFile[]>; read(path: string): Promise<string>;
-  write(path: string, data: string): Promise<void>; delete(path: string): Promise<void>;
-  rename(from: string, to: string): Promise<void>;
-}
-export interface Vault {
-  readonly id: string; readonly adapter: StorageAdapter;
-  getFiles(): TFile[]; getAbstractFileByPath(p: string): TFile | TFolder | null;
-  read(f: TFile): Promise<string>; cachedRead(f: TFile): Promise<string>;
-  create(path: string, data: string): Promise<TFile>;
-  modify(f: TFile, data: string): Promise<void>;
-  process(f: TFile, fn: (data: string) => string): Promise<string>;
-  rename(f: TFile | TFolder, newPath: string): Promise<void>;
-  trash(f: TFile | TFolder): Promise<void>;
-  on(evt: 'create' | 'modify' | 'delete' | 'rename', cb: (f: TFile, oldPath?: string) => void): () => void;
-}
+type LayoutMode = 'mindmap' | 'timeline' | 'fishbone' | 'free-force';
+type MindmapOrientation = 'balanced' | 'radial';
 
-// core/metadata
-export interface Pos { line: number; col: number; offset: number }
-export interface LinkCache { link: string; original: string; displayText?: string; heading?: string; position: { start: Pos; end: Pos } }
-export interface HeadingCache { heading: string; level: 1|2|3|4|5|6; position: { start: Pos; end: Pos } }
-export interface CachedMetadata { links?: LinkCache[]; embeds?: LinkCache[]; tags?: { tag: string; position: { start: Pos; end: Pos } }[]; headings?: HeadingCache[]; frontmatter?: Record<string, unknown>; frontmatterPosition?: { start: Pos; end: Pos } }
-export interface MetadataCache {
-  getFileCache(f: TFile): CachedMetadata | null;
-  getFirstLinkpathDest(linkpath: string, sourcePath: string): TFile | null;
-  resolvedLinks: Record<string, Record<string, number>>;
-  unresolvedLinks: Record<string, Record<string, number>>;
-  getBacklinks(f: TFile): Map<string, LinkCache[]>;
-  getTags(): Map<string, number>;
-  on(evt: 'changed' | 'resolved' | 'deleted', cb: (f: TFile, cache?: CachedMetadata) => void): () => void;
-}
+type LayoutPoint = { x: number; y: number };
+type NodeTarget = LayoutPoint & { side?: -1 | 0 | 1; angle?: number; lane?: number };
 
-// core/file-manager
-export interface FileManager {
-  renameFile(f: TFile, newPath: string): Promise<{ updatedFiles: string[] }>;
-  getOrphans(): TFile[];
-  generateMarkdownLink(target: TFile, sourcePath: string, alias?: string): string;
-}
+type LayoutGeometry = {
+  mode: LayoutMode;
+  targets: Map<string, NodeTarget>;
+  bounds: { minX: number; minY: number; maxX: number; maxY: number };
+  decorations: Array<TimelineAxis | FishboneSpine | FishboneRib>;
+};
 
-// features/editor
-export interface EditorSuggestTriggerInfo { start: Pos; end: Pos; query: string }
-export interface EditorSuggestContext extends EditorSuggestTriggerInfo { editor: EditorApi; file: TFile }
-export abstract class EditorSuggest<T> {
-  abstract onTrigger(cursor: Pos, editor: EditorApi, file: TFile): EditorSuggestTriggerInfo | null;
-  abstract getSuggestions(ctx: EditorSuggestContext): T[] | Promise<T[]>;
-  abstract renderSuggestion(item: T): React.ReactNode;
-  abstract selectSuggestion(item: T, evt: KeyboardEvent | MouseEvent): void;
-}
-export type FrontmatterPropertyType = 'text' | 'number' | 'date' | 'datetime' | 'checkbox' | 'tags' | 'list';
-export interface FrontmatterProperty { key: string; type: FrontmatterPropertyType; value: unknown; position?: { start: Pos; end: Pos } }
-export interface EditorApi {
-  getValue(): string; setValue(v: string): void; getSelection(): string; replaceSelection(t: string): void;
-  replaceRange(t: string, from: Pos, to?: Pos): void; getCursor(): Pos; setCursor(p: Pos): void;
-  getLine(n: number): string; lineCount(): number; posToOffset(p: Pos): number; offsetToPos(o: number): Pos;
-  focus(): void; exec(cmd: string): boolean;
-}
-
-// features/workspace
-export type ViewType = 'markdown' | 'graph' | 'backlinks' | 'settings' | 'empty';
-export interface ViewState { type: ViewType; state: Record<string, unknown>; mode?: 'source' | 'live' | 'reading' }
-export interface WorkspaceLeaf { id: string; parentId: string; view: ViewState; pinned: boolean; history: ViewState[]; setViewState(v: ViewState): Promise<void>; openFile(f: TFile): Promise<void>; detach(): void }
-export interface WorkspaceSplit { id: string; direction: 'horizontal' | 'vertical'; children: (WorkspaceSplit | WorkspaceLeaf)[]; sizes: number[] }
-export interface Workspace {
-  root: WorkspaceSplit; activeLeafId: string | null;
-  getLeaf(mode: 'tab' | 'split' | 'window'): WorkspaceLeaf;
-  getLeavesOfType(t: ViewType): WorkspaceLeaf[];
-  splitActiveLeaf(dir: 'horizontal' | 'vertical'): WorkspaceLeaf;
-  getLayout(): unknown; changeLayout(l: unknown): Promise<void>;
-}
-
-// core/commands
-export interface Command { id: string; name: string; hotkeys?: string[]; icon?: string; checkCallback?: (checking: boolean) => boolean | void; editorCallback?: (editor: EditorApi, view: ViewState) => void }
+type LayoutContext = {
+  width: number; height: number;
+  rootId?: string; levelGap: number; siblingGap: number; laneGap: number;
+  nodeMetrics: Map<string, { width: number; height: number }>;
+};
 ```
 
-## 6. Performance, Virtualization & Memory Strategy
+`useLayoutEngine(graph, mode, options)` will:
 
-- Editor: CM6 already virtualizes DOM by viewport; keep Decoration sets built via `RangeSetBuilder` limited to `view.visibleRanges`; expensive widgets (mermaid, katex) render lazily with `requestIdleCallback` and cache by content hash; one `EditorView` per leaf, destroyed in effect cleanup (`view.destroy()`), state kept in leaf `ViewState` so reopening restores scroll/cursor.
-- Parsing: all Lezer/YAML parsing for cache runs in a Web Worker (Comlink); main thread never parses more than the active document. Reindex in chunks of 200 with `await scheduler.yield()` fallback to `setTimeout(0)`.
-- Graph: simulation in worker, positions in `SharedArrayBuffer` when cross-origin isolated else transferable arrays; renderer redraws only on tick or camera change; label rendering behind zoom threshold; `simulation.stop()` and `app.destroy(true)` on unmount; dispose Pixi textures via a texture cache with LRU 500.
-- Stores: selectors with `useShallow`; services subscribe with `subscribeWithSelector` and unsubscribe on cleanup; no whole-store subscriptions in leaves.
-- Memory guards: `WeakMap` for per-file derived data; leaf close triggers `view.destroy()`, worker port close, and cache entry release; dev-only `EventDebugPanel` reports listener counts (already exists in `eventBus.getListenerCount()`).
-- Budgets: keystroke under 16ms, cache update under 50ms, graph tick under 12ms at 10K nodes, initial load under 2s on 3G fast for app shell (vault data streamed after).
+1. Normalize link endpoints once and build `byId`, `childrenByParent`, `parentByChild`, `roots`, and category/date indexes in `O(V + E)`.
+2. Exclude descendants of collapsed nodes before layout so hidden branches consume no space.
+3. Run the selected pure layout function inside `useMemo`; no React state writes occur during render.
+4. Start/cancel a transition in an effect keyed by a stable graph/layout signature.
+5. Apply coordinates to the same node objects passed to ForceGraph2D; avoid recreating graph objects per animation frame.
+6. Return geometry, visibility/pathway sets, transition state, and camera actions.
 
-## Technical notes
+Malformed hierarchy handling is deterministic: ignore dangling parent references, cut a cycle at its first repeated node, and treat all resulting roots as a virtual-root forest. Warnings remain development-only.
 
-- New dependencies: `@codemirror/*` (state, view, language, lang-markdown, autocomplete, commands, search), `@lezer/markdown`, `@lezer/highlight`, `yaml`, `katex`, `mermaid`, `comlink`, `pixi.js`, `@dnd-kit/core`.
-- Removed after migration: `react-markdown` (once post-processor pipeline ships), `remark-breaks`, `rehype-raw`, `react-force-graph-2d`, `three`.
-- Auto-generated files stay untouched: `src/integrations/supabase/client.ts`, `types.ts`, `.env`.
-- Each phase ships as one approved plan and lands green (typecheck, build, no console loops) before the next starts.
+## Layout Mathematics
+
+### 1. Mindmap / Balanced Tree
+
+Compute subtree weight bottom-up:
+
+```text
+W(n) = max(1, sum(W(c)) for each visible child c)
+```
+
+For balanced mode, keep the chosen root at `(0, 0)`. Sort root children stably by original order, then greedily assign each branch to the side whose accumulated weight is smaller. Let `s in {-1,+1}` be its side, `d` its depth from the root, and `Gx` the level gap:
+
+```text
+x(n) = s * d * Gx
+span(n) = max(cardHeight(n) + Gy, sum(span(c)))
+y(child_i) = top(n) + sum(span(child_j), j < i) + span(child_i)/2
+y(n) = weighted center of its visible children
+```
+
+Each side is translated so its total span is centered around `y = 0`. Node width participates in horizontal spacing:
+
+```text
+x(child) = x(parent) + s * (parentWidth/2 + childWidth/2 + Gx)
+```
+
+For radial mode, each root branch receives an angular sector proportional to `W(branch)`:
+
+```text
+DeltaTheta_i = 2*pi * W(branch_i) / sum(W(rootChildren))
+theta(n) = midpoint of its allocated sector
+r(n) = depth(n) * Gr
+x(n) = r(n) * cos(theta(n)); y(n) = r(n) * sin(theta(n))
+```
+
+The root card is larger and visually distinct. Forests use a virtual root only for math; virtual nodes never render.
+
+### 2. Timeline
+
+Resolve each milestone to epoch milliseconds. Undated entries use stable sequential order in a reserved section. For dated nodes:
+
+```text
+u_i = (time_i - timeMin) / max(1, timeMax - timeMin)
+x_i = axisLeft + u_i * axisWidth
+```
+
+When every timestamp is identical or absent, use:
+
+```text
+x_i = axisLeft + i * axisWidth / max(1, N - 1)
+```
+
+Collision-aware alternating lanes are assigned in chronological order. Candidate lanes are `+1, -1, +2, -2, ...`; choose the first whose last occupied right edge is left of the current card's left edge:
+
+```text
+left_i = x_i - cardWidth_i/2
+lane(i) = first l where left_i >= laneEnd[l] + Gx
+y_i = baselineY + sign(lane(i)) * ceil(abs(lane(i))/2) * Gy
+laneEnd[lane(i)] = x_i + cardWidth_i/2
+```
+
+A detail node attached to milestone `m` inherits its side and forms a compact stack:
+
+```text
+x(detail_k) = x_m + detailDirection * min(k, maxColumns) * detailGapX
+y(detail_k) = y_m + sign(y_m - baselineY) * (1 + floor(k/maxColumns)) * detailGapY
+```
+
+Axis ticks use a “nice interval” selected from `{1, 2, 5} * 10^k`; labels are formatted according to span. Timeline axis and ticks are rendered once in `onRenderFramePre`; milestone/detail paths are rendered by `linkCanvasObject`.
+
+### 3. Fishbone / Ishikawa
+
+Select the effect/root node at the right endpoint. Let the spine run from `S=(x0,y0)` to effect anchor `E=(x1,y0)`, with usable length `L=x1-x0`. For `C` major categories, category `j` receives:
+
+```text
+a_j = x0 + (j + 1) * L / (C + 1)          # spine anchor
+sign_j = -1 when j is even, +1 when odd    # above/below
+alpha = pi/4                               # configurable 35°..55°
+ribLength_j = max(minRib, baseRib + W(category_j) * growth)
+categoryX_j = a_j - ribLength_j * cos(alpha)
+categoryY_j = y0 + sign_j * ribLength_j * sin(alpha)
+```
+
+For child `k` among `M` nodes on a major rib, place its attachment at fraction `t_k=(k+1)/(M+1)`:
+
+```text
+baseX_k = a_j - t_k * ribLength_j * cos(alpha)
+baseY_k = y0 + sign_j * t_k * ribLength_j * sin(alpha)
+```
+
+Sub-branches use the unit vector perpendicular to the rib, `p=(-sign_j*sin(alpha), -cos(alpha))`. At relative depth `q >= 1`:
+
+```text
+branchOffset = q * subBranchGap
+x_k = baseX_k + branchOffset * p.x
+y_k = baseY_k + branchOffset * p.y
+```
+
+Sibling stacks add `siblingIndex * siblingGap` along the rib tangent. Clamp rib endpoints against viewport layout bounds and increase `ribLength` when measured labels would overlap. Categories are stable-sorted; changing unrelated metadata will not reorder the diagram.
+
+## Smooth Layout Transitions
+
+For each node, capture `P0=(node.x ?? oldFx ?? targetX, node.y ?? oldFy ?? targetY)` and target `P1`. Over a default 550 ms duration:
+
+```text
+t = clamp((now - startTime) / duration, 0, 1)
+ease(t) = 1 - (1 - t)^3
+node.fx = P0.x + (P1.x - P0.x) * ease(t)
+node.fy = P0.y + (P1.y - P0.y) * ease(t)
+```
+
+A single `requestAnimationFrame` controller calls the wrapper's `refresh()` after each mutation. A monotonically increasing transition token cancels stale animation when mode, data, collapse state, or dimensions change. At completion, structured modes retain final `fx/fy`; `free-force` sets `fx = undefined`, `fy = undefined`, resets stale velocities, then calls `d3ReheatSimulation()` through the ForceGraph2D API. Reduced-motion users jump directly to final targets. Repeated resize events are debounced and preserve the current visual center.
+
+## Canvas Rendering Layer
+
+### `linkCanvasObject`
+
+Native Canvas 2D drawing only; no `Path2D` serialization library.
+
+- **Mindmap:** anchor paths to card boundaries. For horizontal mode, use cubic controls `C1=(sx+k*dx,sy)`, `C2=(tx-k*dx,ty)`, where `k=0.45`. Width is `max(minWidth, baseWidth-depth*decay)`. Radial mode bends controls along source/target tangents.
+- **Timeline:** milestone links use orthogonal `moveTo/lineTo` steps or a cubic arch whose lift is `min(maxLift, max(minLift, abs(dx)*0.35))`. Arrowheads use the final path tangent, not center-to-center angle.
+- **Fishbone:** spine is the heaviest stroke, major ribs medium, sub-ribs light. Geometry records identify each role. Arrowheads are triangles computed from endpoint tangent: `tip`, `tip-len*(cos(theta±beta), sin(theta±beta))`.
+- Link opacity derives from pathway highlighting. The renderer uses `ctx.save()/restore()` per link and resets dash, alpha, shadow, alignment, and compositing state.
+- Baseline/spine decorations are drawn once in `onRenderFramePre`; semantic links remain in `linkCanvasObject`. This avoids redrawing the same axis for every link while keeping all graph paths inside the wrapper's render cycle.
+
+### `nodeCanvasObject` and Pointer Area
+
+- Measure and cache labels by `{text,font,maxWidth}`; wrap by words, then by grapheme for oversized tokens.
+- Derive stable card dimensions from line count, icon/badge regions, and zoom-independent graph units.
+- Draw rounded rectangles with `ctx.roundRect` plus fallback path; use semantic theme colors resolved before drawing.
+- Render type icon, up to two text lines, optional status dot, and child-count badge.
+- Branch nodes expose a circular `+/-` toggle at the outward edge. Its geometry is stored per node for click hit testing; `nodePointerAreaPaint` covers the whole card and toggle.
+- Use level of detail: full card above configured zoom, compact card at medium zoom, simple marker below threshold. Avoid allocating arrays, gradients, or formatters inside draw callbacks.
+
+## Interaction and State
+
+All cross-component graph interaction state belongs in a Zustand store:
+
+```text
+layoutMode, orientation, collapsedIds, selectedId, hoveredId,
+focusedRootId, transitionStatus, highlightMode
+```
+
+Graph content remains owned by the vault/session data source; the store invokes explicit mutation adapters rather than maintaining a second node collection.
+
+- **Expand/collapse:** toggle only when the click falls in the rendered toggle region; double-click remains an optional compatibility gesture. Descendants are removed from the visible projection, then targets recompute and animate.
+- **Path highlighting:** precompute ancestors and visible descendants from adjacency maps. Hover set is `ancestors(node) union descendants(node) union node`; incident path links remain full opacity, unrelated nodes/links dim without changing graph data.
+- **Zoom to node:** `centerAt(node.x,node.y,350)` followed by `zoom(targetZoom,350)`.
+- **Focus subtree:** compute bounds from target cards, hide or dim external nodes according to mode, then call `zoomToFit(450,padding,node => subtreeIds.has(node.id))`. Escape restores the whole graph.
+- **Drag:** free-force delegates directly to the wrapper. Structured layouts allow preview dragging; on release either animate back to the deterministic target or persist a per-layout manual offset. Default is snap-back to preserve diagram semantics.
+- **Add/delete:** mutations call the existing `setGraphData`/vault action. Delete requires one policy for descendants (`cascade` or `promote`); implementation defaults to the current hierarchy-safe cascade behavior and recomputes only after the mutation commits.
+- **Keyboard/accessibility:** focusable external controls mirror layout, expand/collapse, focus, and zoom actions because canvas content alone is not keyboard-accessible.
+
+## Phased Roadmap
+
+### Phase 1 — Unified Model and Coordinate Engine
+
+- Introduce the contracts, projection indexes, pure math utilities, and `useLayoutEngine`.
+- Implement deterministic mindmap, timeline, fishbone, and free-force strategies.
+- Add cycle/dangling-parent guards and layout unit tests with invariant checks.
+- Update persisted layout names with migration: `tree -> mindmap`, `force -> free-force`.
+- Keep the existing renderers temporarily for side-by-side parity checks.
+
+**Exit criteria:** identical inputs produce identical coordinates; all finite-coordinate, non-overlap, chronology, side-balance, and fishbone-angle tests pass.
+
+### Phase 2 — Single ForceGraph2D Canvas Layer
+
+- Create `GraphCanvas` as the only renderer.
+- Add custom card nodes, wrapping, badges, status marks, pointer areas, all layout-specific links, axes, ticks, spine, ribs, and arrows.
+- Preserve current theme/config controls and minimap behavior through a typed ForceGraph ref adapter.
+- Route all layouts through `GraphCanvas` from `GraphLeaf`.
+
+**Exit criteria:** all four modes render from the same component; pan, cursor-centered wheel zoom, touch pinch, drag, selection, context menu, and minimap work through ForceGraph2D.
+
+### Phase 3 — Interaction and Animated Transitions
+
+- Add Zustand interaction store and visible-tree projection.
+- Implement toggle hit testing, collapse/expand, ancestry highlighting, subtree focus, zoom-to-node, and layout transitions.
+- Add reduced-motion handling and interruption-safe transition cancellation.
+- Connect add/delete operations without duplicating vault state.
+
+**Exit criteria:** rapid layout switching does not jump, leak animation frames, or leave stale `fx/fy`; collapse and mutations preserve selection safely; highlight traversal is `O(V+E)` preprocessing and `O(path size)` per hover.
+
+### Phase 4 — Remove Parallel Renderer and Direct D3 Dependencies
+
+- Delete `CanvasGraph`, `layout.worker.ts`, D3-backed `layouts.ts`, and D3-backed `linkRouter.ts` after parity is proven.
+- Remove direct runtime dependencies `d3-force`, `d3-hierarchy`, `d3-path` and dev dependencies `@types/d3-force`, `@types/d3-hierarchy`, `@types/d3-path`.
+- Remove direct application calls that configure force objects via `d3Force`; retain only ForceGraph2D public APIs. `react-force-graph-2d` may continue using its own transitive force dependencies internally.
+- Remove the renderer toggle and obsolete per-depth mixed-layout rules unless converted into a separately scoped future feature.
+
+**Exit criteria:** repository search has no direct `d3-*` imports or `d3Force(...)` usage; package manifest has no direct D3 entries; one graph renderer remains; build and type checks pass.
+
+## Verification Strategy
+
+- **Unit:** subtree weights, side balancing, radial sectors, date normalization, lane collision, fishbone angles/attachments, cycle handling, path traversal, text wrapping, easing endpoints.
+- **Property tests:** every visible node has finite coordinates; no duplicate category anchors; timeline X order is monotonic; structured layouts retain exact final `fx/fy`; bounds include measured cards.
+- **Visual fixtures:** shallow/deep mindmap, multi-root forest, equal dates, missing dates, dense timeline, odd/even fishbone categories, long labels, collapsed branches, dark/light themes.
+- **Browser checks:** switch all modes repeatedly; drag; click toggle; hover pathways; add/delete; focus/escape; zoom-to-node; resize; mobile touch pinch. Capture desktop and mobile screenshots and verify no overlaps in representative fixtures.
+- **Performance budgets:** transition holds 55+ FPS at 1,000 nodes on target desktop; no per-frame React state update; layout is linear except stable sorts (`O(V log V)`); hover never recursively scans the raw node array.
+- **Regression:** selection still opens notes, link creation remains functional, filters affect nodes and links consistently, minimap viewport remains synchronized, and the console has no update-depth, passive-wheel, or stale-animation errors.
+
+## Key Risks and Controls
+
+- **ForceGraph mutates graph objects:** maintain one render-model identity per source revision; never pass frozen vault objects directly.
+- **Fixed coordinates can conflict with drag/simulation:** define mode-specific release behavior and keep transition writes in one controller.
+- **Canvas controls are not native DOM:** mirror essential actions in accessible controls and enlarge pointer paint regions.
+- **Very dense deterministic layouts exceed viewport:** layout in graph-space, compute bounds, and fit the camera rather than compressing cards until unreadable.
+- **Metadata does not always identify an effect/category/date:** use documented deterministic fallbacks and surface invalid fields in settings without breaking rendering.
+
+## Definition of Done
+
+- `react-force-graph-2d` is the sole graph rendering and interaction wrapper for every mode.
+- Mindmap, timeline, fishbone, and free-force modes are selectable and persist across reloads.
+- Structured layouts are deterministic, card-aware, collapsible, highlightable, focusable, and smoothly animated through `fx/fy`.
+- Direct D3 packages/imports and the parallel custom canvas/worker renderer are removed.
+- Tests, type checks, build, console inspection, and responsive interaction checks pass.
+- The approved blueprint exists as root-level `plan.md`, matching this plan.
