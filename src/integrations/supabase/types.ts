@@ -113,7 +113,6 @@ export type Database = {
           section: string
           updated_at: string
           user_id: string
-          vault_id: string | null
           version: number
         }
         Insert: {
@@ -124,7 +123,6 @@ export type Database = {
           section: string
           updated_at?: string
           user_id: string
-          vault_id?: string | null
           version?: number
         }
         Update: {
@@ -135,18 +133,9 @@ export type Database = {
           section?: string
           updated_at?: string
           user_id?: string
-          vault_id?: string | null
           version?: number
         }
-        Relationships: [
-          {
-            foreignKeyName: "user_settings_vault_id_fkey"
-            columns: ["vault_id"]
-            isOneToOne: false
-            referencedRelation: "user_vaults"
-            referencedColumns: ["id"]
-          },
-        ]
+        Relationships: []
       }
       user_vaults: {
         Row: {
@@ -242,7 +231,7 @@ export type Database = {
         Insert: {
           created_at?: string
           id?: string
-          snapshot?: Json
+          snapshot: Json
           user_id: string
           vault_id: string
         }
