@@ -104,6 +104,39 @@ export type Database = {
         }
         Relationships: []
       }
+      user_settings: {
+        Row: {
+          created_at: string
+          data: Json
+          device_id: string | null
+          id: string
+          section: string
+          updated_at: string
+          user_id: string
+          version: number
+        }
+        Insert: {
+          created_at?: string
+          data?: Json
+          device_id?: string | null
+          id?: string
+          section: string
+          updated_at?: string
+          user_id: string
+          version?: number
+        }
+        Update: {
+          created_at?: string
+          data?: Json
+          device_id?: string | null
+          id?: string
+          section?: string
+          updated_at?: string
+          user_id?: string
+          version?: number
+        }
+        Relationships: []
+      }
       user_vaults: {
         Row: {
           backup_config: Json | null
