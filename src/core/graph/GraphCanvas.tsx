@@ -6,7 +6,7 @@
  * engine (`useLayoutEngine`) via the transition controller.
  */
 
-import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import { forwardRef, useCallback, useEffect, useImperativeHandle, useMemo, useRef, useState } from 'react';
 import ForceGraph2D from 'react-force-graph-2d';
 import type { ForceGraphMethods } from 'react-force-graph-2d';
 import type { GraphConfigState } from '@/shared/stores/useGraphStore';
@@ -40,6 +40,10 @@ export interface GraphCanvasProps {
   tagFilter: string;
 }
 
+export interface GraphCanvasHandle {
+  smartZoom: (action: 'fit' | 'selection' | 'reset') => void;
+}
+
 type GraphHandle = ForceGraphMethods<RenderNode, RenderLink> & {
   refresh: () => unknown;
 };
@@ -65,7 +69,7 @@ const topologyEnabled = (type: RenderLink['type'], config: GraphConfigState) => 
   return true;
 };
 
-export function GraphCanvas({
+export const GraphCanvas = forwardRef<GraphCanvasHandle, GraphCanvasProps>(function GraphCanvas({
   graphData,
   selectedNode,
   onNodeSelect,
@@ -74,7 +78,7 @@ export function GraphCanvas({
   maxDepth,
   contentFilter,
   tagFilter,
-}: GraphCanvasProps) {
+}, ref) {
   const containerRef = useRef<HTMLDivElement>(null);
   const graphRef = useRef<GraphHandle>();
   const transition = useRef(new LayoutTransitionController());
@@ -363,6 +367,26 @@ export function GraphCanvas({
     // Re-fit when the layout mode changes, not on every data tick.
   }, [layoutMode, orientation]);
 
+  useImperativeHandle(ref, () => ({
+    smartZoom: (action) => {
+      const graph = graphRef.current;
+      if (!graph) return;
+      if (action === 'fit') {
+        graph.zoomToFit?.(500, 60);
+        return;
+      }
+      if (action === 'selection') {
+        const selected = data.nodes.find((node) => node.id === selectedNode?.id);
+        if (!selected || selected.x === undefined || selected.y === undefined) return;
+        graph.centerAt?.(selected.x, selected.y, 450);
+        graph.zoom?.(2.25, 450);
+        return;
+      }
+      graph.centerAt?.(0, 0, 400);
+      graph.zoom?.(1, 400);
+    },
+  }), [data.nodes, selectedNode?.id]);
+
   return (
     <div ref={containerRef} className="relative h-full w-full">
       <ForceGraph2D
@@ -406,6 +430,6 @@ export function GraphCanvas({
       />
     </div>
   );
-}
+});
 
 export default GraphCanvas;

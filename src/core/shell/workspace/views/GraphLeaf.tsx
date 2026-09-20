@@ -1,5 +1,5 @@
-import { GraphCanvas } from "@/core/graph/GraphCanvas";
-import { GraphWorkspaceControls } from "@/core/graph/GraphWorkspaceControls";
+import { GraphCanvas, type GraphCanvasHandle } from "@/core/graph/GraphCanvas";
+import { GraphWorkspaceControls, type SmartZoomAction } from "@/core/graph/GraphWorkspaceControls";
 import {
   GraphInteractionProvider,
   useGraphInteractionStore,
@@ -9,7 +9,7 @@ import { useGraphStore } from "@/shared/stores";
 import { useVaultSession } from "../VaultSessionContext";
 import { useWorkspaceStore } from "../store/useWorkspaceStore";
 import type { LeafViewProps } from "../ViewRegistry";
-import { useState } from "react";
+import { useRef, useState } from "react";
 
 function GraphLeafBody() {
   const { graphData, selectedNode, setSelectedNode } = useVaultSession();
@@ -30,6 +30,9 @@ function GraphLeafBody() {
   const [maxDepth, setMaxDepth] = useState(10);
   const [contentFilter, setContentFilter] = useState("");
   const [tagFilter, setTagFilter] = useState("");
+  const graphRef = useRef<GraphCanvasHandle>(null);
+
+  const handleSmartZoom = (action: SmartZoomAction) => graphRef.current?.smartZoom(action);
 
   const handleSelect = (node: typeof selectedNode) => {
     setSelectedNode(node);
@@ -41,6 +44,7 @@ function GraphLeafBody() {
   return (
     <div className="relative w-full h-full">
       <GraphCanvas
+        ref={graphRef}
         graphData={graphData}
         selectedNode={selectedNode}
         onNodeSelect={handleSelect}
@@ -72,6 +76,7 @@ function GraphLeafBody() {
         onContentFilterChange={setContentFilter}
         tagFilter={tagFilter}
         onTagFilterChange={setTagFilter}
+        onSmartZoom={handleSmartZoom}
       />
     </div>
   );
