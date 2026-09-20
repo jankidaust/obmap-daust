@@ -8,4 +8,4 @@
 - [x] Add hierarchy-level node sizing with a configurable level interval.
 - [x] Add synchronized Living Graph play and pause controls.
 - [x] Validate TypeScript and the running preview.
-- [ ] Add Smart Zoom controls below the graph tool rail: fit, selection, and 100% reset.
+- [x] Add Smart Zoom controls below the graph tool rail: fit, selection, and 100% reset.
