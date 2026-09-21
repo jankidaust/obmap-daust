@@ -18,3 +18,4 @@
 - [x] Phase 0–2 (auth-vault roadmap): remove dead code, unify sync engine behind SyncEngine, single SyncCoordinator trigger.
 - [x] Phase 3–4: UUID vault identity, cloud-matched vault dedup, vault-scoped config sections in ConfigService.
 - [x] Phase 6: logout no longer destroys local vaults; sync queue scoped per user; consolidated duplicate auth listener.
+- [x] Phase 5: folder vaults survive refresh via remembered directory handles (with permission re-prompt); one shared FileSystemService; shared folder-capability detection in the UI.
