@@ -40,11 +40,7 @@ const LAYOUTS: { value: LayoutMode; label: string; icon: typeof Network }[] = [
   { value: 'free-force', label: 'Free force', icon: Network },
 ];
 
-<<<<<<< HEAD
-type Panel = 'controls' | 'search' | 'filters' | 'zoom';
-=======
 type Panel = 'options' | 'search-filters' | 'zoom';
->>>>>>> bdb9dd5 (okjijij)
 
 export type SmartZoomAction = 'fit' | 'selection' | 'reset';
 
@@ -142,66 +138,7 @@ export function GraphWorkspaceControls({
     <TooltipProvider delayDuration={250}>
       <div className="pointer-events-none absolute right-2 top-2 z-40 flex flex-row-reverse items-start gap-2 sm:right-4 sm:top-4">
         <div className="flex w-11 flex-col gap-2">
-<<<<<<< HEAD
-        <div className="pointer-events-auto flex flex-col items-center gap-1 rounded-md border border-border/80 bg-card/95 p-1 shadow-xl backdrop-blur-md">
-          <Tooltip>
-            <TooltipTrigger asChild>
-              <Button
-                type="button"
-                variant={panel === 'controls' ? 'secondary' : 'ghost'}
-                size="icon"
-                className="h-9 w-9"
-                aria-label="Graph layout"
-                aria-pressed={panel === 'controls'}
-                onClick={() => togglePanel('controls')}
-              >
-                <Network className="h-4 w-4" />
-              </Button>
-            </TooltipTrigger>
-            <TooltipContent side="left">Graph layout</TooltipContent>
-          </Tooltip>
-
-          <Tooltip>
-            <TooltipTrigger asChild>
-              <Button
-                type="button"
-                variant={panel === 'search' ? 'secondary' : 'ghost'}
-                size="icon"
-                className={cn('h-9 w-9', search && 'text-primary')}
-                aria-label="Search graph"
-                aria-pressed={panel === 'search'}
-                onClick={() => togglePanel('search')}
-              >
-                <Search className="h-4 w-4" />
-              </Button>
-            </TooltipTrigger>
-            <TooltipContent side="left">Search graph</TooltipContent>
-          </Tooltip>
-
-          <Tooltip>
-            <TooltipTrigger asChild>
-              <Button
-                type="button"
-                variant={panel === 'filters' ? 'secondary' : 'ghost'}
-                size="icon"
-                className={cn('relative h-9 w-9', filterCount > 0 && 'text-primary')}
-                aria-label="Graph filters"
-                aria-pressed={panel === 'filters'}
-                onClick={() => togglePanel('filters')}
-              >
-                <Filter className="h-4 w-4" />
-                {filterCount > 0 && (
-                  <span className="absolute right-1 top-1 h-1.5 w-1.5 rounded-full bg-primary" />
-                )}
-              </Button>
-            </TooltipTrigger>
-            <TooltipContent side="left">Graph filters</TooltipContent>
-          </Tooltip>
-
-          {(collapsedCount > 0 || focused) && (
-=======
           <div className="pointer-events-auto flex flex-col items-center gap-1 rounded-md border border-border/80 bg-card/95 p-1 shadow-xl backdrop-blur-md">
->>>>>>> bdb9dd5 (okjijij)
             <Tooltip>
               <TooltipTrigger asChild>
                 <Button
@@ -279,40 +216,15 @@ export function GraphWorkspaceControls({
           </Tooltip>
         </div>
 
-          <Tooltip>
-            <TooltipTrigger asChild>
-              <Button
-                type="button"
-                variant={panel === 'zoom' ? 'secondary' : 'outline'}
-                size="icon"
-                className="pointer-events-auto h-11 w-11 border-border/80 bg-card/95 shadow-xl backdrop-blur-md"
-                aria-label="Smart zoom controls"
-                aria-pressed={panel === 'zoom'}
-                onClick={() => togglePanel('zoom')}
-              >
-                <Frame className="h-4 w-4" />
-              </Button>
-            </TooltipTrigger>
-            <TooltipContent side="left">Smart zoom</TooltipContent>
-          </Tooltip>
-        </div>
-
         {panel && (
           <section className="pointer-events-auto w-[min(18rem,calc(100vw-5.5rem))] max-h-[calc(100%-1rem)] overflow-y-auto rounded-md border border-border/80 bg-card/95 shadow-2xl backdrop-blur-md animate-in fade-in-0 slide-in-from-right-2 duration-150">
             <header className="flex h-11 items-center justify-between border-b border-border px-3">
               <div>
                 <p className="text-xs font-semibold text-foreground">
-<<<<<<< HEAD
-                  {panel === 'controls' ? 'Graph layout' : panel === 'search' ? 'Search graph' : panel === 'filters' ? 'Graph filters' : 'Smart zoom'}
-                </p>
-                <p className="text-[10px] text-muted-foreground">
-                  {panel === 'controls' ? 'Choose how nodes are arranged' : panel === 'search' ? 'Find a node by name' : panel === 'filters' ? 'Narrow the visible network' : 'Frame the graph or selection'}
-=======
                   {panel === 'options' ? 'Graph options' : panel === 'search-filters' ? 'Search & Filters' : 'Smart zoom'}
                 </p>
                 <p className="text-[10px] text-muted-foreground">
                   {panel === 'options' ? 'Adjust appearance and layout' : panel === 'search-filters' ? 'Find nodes and narrow the network' : 'Frame the graph or selection'}
->>>>>>> bdb9dd5 (okjijij)
                 </p>
               </div>
               <Button type="button" variant="ghost" size="icon" className="h-7 w-7" onClick={() => setPanel(null)} aria-label="Close graph tools">
@@ -599,23 +511,6 @@ export function GraphWorkspaceControls({
                       </Button>
                     )}
                   </div>
-                </div>
-              )}
-
-              {panel === 'zoom' && (
-                <div className="space-y-1">
-                  <Button type="button" variant="ghost" className="h-auto w-full justify-start gap-3 py-2.5" onClick={() => { onSmartZoom('fit'); setPanel(null); }}>
-                    <Frame className="h-4 w-4 shrink-0" />
-                    <span className="text-left"><span className="block text-xs font-medium">Zoom-to-Fit</span><span className="block text-[10px] text-muted-foreground">Fit the entire graph</span></span>
-                  </Button>
-                  <Button type="button" variant="ghost" className="h-auto w-full justify-start gap-3 py-2.5" onClick={() => { onSmartZoom('selection'); setPanel(null); }}>
-                    <Focus className="h-4 w-4 shrink-0" />
-                    <span className="text-left"><span className="block text-xs font-medium">Zoom-to-Selection</span><span className="block text-[10px] text-muted-foreground">Focus selected nodes</span></span>
-                  </Button>
-                  <Button type="button" variant="ghost" className="h-auto w-full justify-start gap-3 py-2.5" onClick={() => { onSmartZoom('reset'); setPanel(null); }}>
-                    <RotateCcw className="h-4 w-4 shrink-0" />
-                    <span className="text-left"><span className="block text-xs font-medium">Reset Zoom</span><span className="block text-[10px] text-muted-foreground">Return to 100%</span></span>
-                  </Button>
                 </div>
               )}
 

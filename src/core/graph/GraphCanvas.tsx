@@ -559,8 +559,3 @@ export const GraphCanvas = forwardRef<GraphCanvasHandle, GraphCanvasProps>(funct
     </div>
   );
 });
-<<<<<<< HEAD
-
-export default GraphCanvas;
-=======
->>>>>>> bdb9dd5 (okjijij)

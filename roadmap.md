@@ -8,9 +8,6 @@
 - [x] Add hierarchy-level node sizing with a configurable level interval.
 - [x] Add synchronized Living Graph play and pause controls.
 - [x] Validate TypeScript and the running preview.
-<<<<<<< HEAD
-- [x] Add Smart Zoom controls below the graph tool rail: fit, selection, and 100% reset.
-=======
 - [x] Preserve and connect every Visual Graph Engine node, link, topology, and force setting.
 - [x] Repair timeline milestone/detail placement and link routing.
 - [x] Repair fishbone branch geometry and prevent node/link overlap.
@@ -21,4 +18,3 @@
 - [x] Phase 0–2 (auth-vault roadmap): remove dead code, unify sync engine behind SyncEngine, single SyncCoordinator trigger.
 - [x] Phase 3–4: UUID vault identity, cloud-matched vault dedup, vault-scoped config sections in ConfigService.
 - [x] Phase 6: logout no longer destroys local vaults; sync queue scoped per user; consolidated duplicate auth listener.
->>>>>>> bdb9dd5 (okjijij)
