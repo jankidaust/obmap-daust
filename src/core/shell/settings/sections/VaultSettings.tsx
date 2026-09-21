@@ -196,10 +196,8 @@ export function VaultSettings() {
   const handleDeleteVault = async (vaultId: string) => {
     if (!confirm("Delete this vault? All of its backups will be deleted too."))
       return;
-    const { cloudId, wasCloudVault } = await vaultManager.deleteVault(vaultId);
-    if (wasCloudVault && cloudId && isAuthenticated) {
-      await deleteCloudVault(cloudId);
-    }
+    // The manager removes the cloud copy too when the vault was synced.
+    await vaultManager.deleteVault(vaultId);
     await loadVaults();
     toast.success("Vault deleted");
   };

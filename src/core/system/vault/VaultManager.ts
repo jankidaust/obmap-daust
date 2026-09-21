@@ -5,7 +5,7 @@
  * - location: 'folder' (Markdown files in a real folder) or 'cloud' (in the account)
  * - cloudSync: whether the vault is mirrored to the user's cloud account
  *
- * Folder vaults keep their portable configuration inside `<vault>/.obmap`.
+ * Folder vaults get a derived `.vault-config.json` export at their root.
  * Cloud vaults keep the same structure in IndexedDB + the cloud record.
  */
 
@@ -14,12 +14,12 @@ import { VaultStorage } from "./VaultStorage";
 import { VaultHistory } from "./VaultHistory";
 import { VaultBackupService } from "./VaultBackupService";
 import { FileSystemService } from "../persistence/FileSystemService";
-import { ObmapConfigService, emptyObmapConfig } from "./ObmapConfigService";
+import { writeVaultConfigFile } from "../config/VaultConfigFile";
 import {
   BackupConfig,
   VaultLocation,
   VaultGraphConfig,
-  ObmapConfig,
+  VaultConfigSnapshot,
   migrateLegacyStrategy,
 } from "./types";
 import {
@@ -43,7 +43,6 @@ export interface Vault {
   history: VaultHistory;
   persistenceService?: FileSystemService;
   directoryHandle?: FileSystemDirectoryHandle;
-  obmap?: ObmapConfigService;
   createdAt: number;
   lastModified: number;
   graphConfig?: VaultGraphConfig | null;
@@ -52,8 +51,14 @@ export interface Vault {
   workspaceLayout?: any;
 }
 
-const newVaultId = () =>
-  `vault-${Date.now()}-${Math.random().toString(36).slice(2, 11)}`;
+/**
+ * A vault id is a UUID that doubles as the primary key of its cloud row
+ * (`user_vaults.id`), so one vault is the same identity on every device.
+ */
+const newVaultId = (): string =>
+  typeof crypto !== "undefined" && crypto.randomUUID
+    ? crypto.randomUUID()
+    : `vault-${Date.now()}-${Math.random().toString(36).slice(2, 11)}`;
 
 export class VaultManager {
   private vaults: Map<string, Vault> = new Map();
@@ -177,8 +182,12 @@ export class VaultManager {
   // ---------------------------------------------------------------- creation
 
   /** A vault that lives in the user's account (no folder on this computer). */
-  async createCloudVault(name: string, cloudSync = true): Promise<string> {
-    const vaultId = newVaultId();
+  async createCloudVault(
+    name: string,
+    cloudSync = true,
+    id?: string,
+  ): Promise<string> {
+    const vaultId = id ?? newVaultId();
     const graphService = new GraphService();
     graphService.initialize();
 
@@ -233,33 +242,23 @@ export class VaultManager {
     await persistenceService.readVaultStructure(root);
     graphService.finalizeGraph();
 
-    // Portable config: create `.obmap` when the folder does not have one yet.
-    const obmap = new ObmapConfigService(root);
-    const config = await obmap.load({
-      id: vaultId,
-      name: root.name,
-      createdAt: Date.now(),
-      cloudSync: options.cloudSync ?? false,
-    });
-
     const vault: Vault = {
       id: vaultId,
-      name: config.vault.name || root.name,
+      name: root.name,
       location: "folder",
-      cloudSync: options.cloudSync ?? config.vault.cloudSync ?? false,
+      cloudSync: options.cloudSync ?? false,
       type: "local-folder",
-      cloudId: config.vault.cloudId,
       graphService,
       history: new VaultHistory(),
       persistenceService,
       directoryHandle: root,
-      obmap,
-      createdAt: config.vault.createdAt || Date.now(),
+      createdAt: Date.now(),
       lastModified: Date.now(),
-      graphConfig: config.graph,
-      backupConfig: config.backup ?? null,
-      settings: config.settings ?? {},
-      workspaceLayout: config.workspace ?? null,
+      // Settings are owned by ConfigService; the file is a derived export.
+      graphConfig: null,
+      backupConfig: null,
+      settings: {},
+      workspaceLayout: null,
     };
 
     this.vaults.set(vaultId, vault);
@@ -288,7 +287,6 @@ export class VaultManager {
 
     vault.persistenceService = persistenceService;
     vault.directoryHandle = handle;
-    vault.obmap = new ObmapConfigService(handle);
     vault.location = "folder";
     vault.type = "local-folder";
     vault.lastModified = Date.now();
@@ -306,7 +304,7 @@ export class VaultManager {
       }
     }
 
-    await this.writeObmap(vault);
+    await this.writeConfigExport(vault);
     await this.persistVault(vault);
     return true;
   }
@@ -326,7 +324,7 @@ export class VaultManager {
     vault.lastModified = Date.now();
     if (!enabled) vault.cloudId = undefined;
 
-    await this.writeObmap(vault);
+    await this.writeConfigExport(vault);
     await this.persistVault(vault);
     return { needsCloudSync: enabled, cloudId: previousCloudId };
   }
@@ -352,24 +350,13 @@ export class VaultManager {
       if (current) await this.persistVault(current);
     }
 
-    // Re-read portable config so the session follows this vault only.
-    if (vault.obmap) {
+    // `.vault-config.json` is a derived export, never a source of truth:
+    // settings always come from ConfigService.
+    if (vault.directoryHandle) {
       const granted = await vault.persistenceService?.verifyPermission(
         vault.directoryHandle,
       );
-      if (granted) {
-        const config = await vault.obmap.load({
-          id: vault.id,
-          name: vault.name,
-          createdAt: vault.createdAt,
-          cloudSync: vault.cloudSync,
-          cloudId: vault.cloudId,
-        });
-        vault.graphConfig = config.graph;
-        vault.backupConfig = config.backup ?? null;
-        vault.settings = config.settings ?? {};
-        vault.workspaceLayout = config.workspace ?? null;
-      }
+      if (granted) await this.writeConfigExport(vault);
     }
 
     this.activeVaultId = vaultId;
@@ -387,6 +374,17 @@ export class VaultManager {
 
     const wasCloudVault = vault.cloudSync;
     const cloudId = vault.cloudId;
+
+    // Remove the cloud copy too, so a vault deleted on one device does not
+    // reappear on another. Best-effort: offline deletion is left to the caller.
+    if (cloudId && wasCloudVault && navigator.onLine) {
+      try {
+        const { cloudVaultService } = await import("./CloudVaultService");
+        await cloudVaultService.deleteVault(cloudId);
+      } catch (error) {
+        console.warn("Cloud vault deletion failed:", error);
+      }
+    }
 
     vault.persistenceService?.closeVault();
     vault.graphService.cleanup();
@@ -500,7 +498,7 @@ export class VaultManager {
     const oldName = vault.name;
     vault.name = newName.trim();
     vault.lastModified = Date.now();
-    await this.writeObmap(vault);
+    await this.writeConfigExport(vault);
     await this.persistVault(vault);
     emitVaultRenamed({ vaultId, oldName, newName: vault.name });
     return true;
@@ -534,41 +532,21 @@ export class VaultManager {
     });
   }
 
-  /** Write the portable `.obmap` config for folder vaults. */
-  private async writeObmap(vault: Vault): Promise<void> {
-    if (!vault.obmap) return;
-    const config: ObmapConfig = {
-      vault: {
-        id: vault.id,
-        name: vault.name,
-        createdAt: vault.createdAt,
-        cloudSync: vault.cloudSync,
-        cloudId: vault.cloudId,
-      },
-      settings: vault.settings ?? {},
-      graph: vault.graphConfig ?? null,
-      workspace: vault.workspaceLayout ?? null,
-      backup: vault.backupConfig ?? null,
-    };
-    await vault.obmap.saveAll(config);
+  /** Write the derived `.vault-config.json` export for folder vaults. */
+  private async writeConfigExport(vault: Vault): Promise<void> {
+    await writeVaultConfigFile(vault.directoryHandle);
   }
 
   async setCloudId(vaultId: string, cloudId: string): Promise<void> {
     const vault = this.vaults.get(vaultId);
     if (!vault) return;
     vault.cloudId = cloudId;
-    await vault.obmap?.saveVaultFile({
-      id: vault.id,
-      name: vault.name,
-      createdAt: vault.createdAt,
-      cloudSync: vault.cloudSync,
-      cloudId,
-    });
+    await this.writeConfigExport(vault);
     await this.persistVault(vault);
   }
 
   /** Full portable config for a vault (used by settings and the workspace). */
-  getVaultConfig(vaultId: string): ObmapConfig | null {
+  getVaultConfig(vaultId: string): VaultConfigSnapshot | null {
     const vault = this.vaults.get(vaultId);
     if (!vault) return null;
     return {
@@ -598,7 +576,7 @@ export class VaultManager {
     if (!vault) return;
     vault.graphConfig = config;
     vault.lastModified = Date.now();
-    await vault.obmap?.saveGraph(config);
+    await this.writeConfigExport(vault);
     await this.persistVault(vault);
   }
 
@@ -614,7 +592,7 @@ export class VaultManager {
     if (!vault) return;
     vault.settings = settings;
     vault.lastModified = Date.now();
-    await vault.obmap?.saveSettings(settings);
+    await this.writeConfigExport(vault);
     await this.persistVault(vault);
   }
 
@@ -622,7 +600,7 @@ export class VaultManager {
     const vault = this.vaults.get(vaultId);
     if (!vault) return;
     vault.workspaceLayout = layout;
-    await vault.obmap?.saveWorkspace(layout);
+    await this.writeConfigExport(vault);
     await this.persistVault(vault);
   }
 
@@ -691,7 +669,7 @@ export class VaultManager {
     vault.lastModified = Date.now();
     this.backupService.setConfig(vaultId, config);
 
-    await vault.obmap?.saveBackup(config);
+    await this.writeConfigExport(vault);
     await this.persistVault(vault);
 
     this.backupService.stopAutoBackup(vaultId);
@@ -716,5 +694,3 @@ export class VaultManager {
     this.backupService.stopAutoBackup(vaultId);
   }
 }
-
-export { emptyObmapConfig };
